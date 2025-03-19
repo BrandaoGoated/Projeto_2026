@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  cli_tool:
+    build: .
+    container_name: mparty
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true

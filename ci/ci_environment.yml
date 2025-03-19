@@ -2,6 +2,7 @@ name: mparty
 channels:
   - conda-forge
   - bioconda
+  - defaults
 dependencies:
   - upimapi
   - pyyaml

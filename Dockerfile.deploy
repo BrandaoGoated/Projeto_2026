@@ -1,0 +1,13 @@
+FROM continuumio/miniconda3
+
+WORKDIR /app
+
+COPY environment.yml /app/ci_environment.yml
+
+RUN conda update -n base -c defaults -y conda \
+&& conda install -c conda-forge -y mamba \
+&& mamba env update -f /app/ci_environment.yml --name base \
+&& bash M-PARTY/ci/ci_build.sh \
+&& conda clean --all -y
+
+CMD [ "python", "bin/m_party.py" ]

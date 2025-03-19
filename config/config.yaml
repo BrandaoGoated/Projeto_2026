@@ -16,7 +16,7 @@ metagenomic: false
 msa_aligner: tcoffee
 out_table_format: tsv
 output_directory: MPARTY_results
-overwrite: false
+overwrite: true
 seqids: []
 threads: 16
 thresholds: false
