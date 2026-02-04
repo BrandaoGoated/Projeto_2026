@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 from workflow.scripts.command_run import run_command
+import time
 
 
 def run_CDHIT(input: str, output: str, threads: int, type_seq: str = "AA", identperc: float = 0.7):
@@ -103,14 +104,15 @@ def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, inpu
         input_IDs_list (list): list of seq IDs from the input file (to facilitate).
     """
     # returns list of IDs from inputed FASTA sequences (entire ID)
+    
     with open(inputed_seqs, "r") as rf:
-        Lines = rf.readlines()
+        lines = rf.readlines()
         for k, v in clust_dict.items():
             with open(f'{path}/{db}_cluster_{k}.fasta', "w") as wf:
                 for x in v:
                     if x in input_IDs_list:
                         # try:
-                            iterador = iter(Lines)
+                            iterador = iter(lines)
                             linha = next(iterador)
                             while linha is not None:
                                 if x not in linha:
@@ -118,13 +120,10 @@ def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, inpu
                                     continue
                                 elif x in linha:
                                     wf.write(linha)
-                                    # print(linha)
                                     linha = next(iterador, None)
-                                    # print(linha)
                                     while linha is not None and not linha.startswith(">"):
                                         wf.write(linha)
                                         linha = next(iterador, None)
-                                        # print(linha)
                                 elif x not in linha and linha.startswith(">"):
                                     break
                                 linha = next(iterador, None)
@@ -134,8 +133,3 @@ def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, inpu
                         continue
             wf.close()
     rf.close()
-
-
-# handle = cdhit_parser(snakemake.input[0])
-# handle2 = counter(handle, tsv_ready=True, remove_duplicates=True)
-# save_as_tsv(handle2, snakemake.output[0])

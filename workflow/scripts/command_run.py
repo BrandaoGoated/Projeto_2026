@@ -21,11 +21,16 @@ def docker_run_hmmbuild(volume, input_file, output_file):
 def docker_run_hmmsearch(volume, hmm_file, db, output_file):
     run_command(f'docker`run`--rm`-v`{volume}`biocontainers/hmmer:v3.2.1dfsg-1-deb_cv1`hmmsearch`{hmm_file}`{db}`>`{output_file}', sep="`")
 
-def run_tcoffee(input: str, output: str, type_seq: str = "PROTEIN"):
-    run_command(f't_coffee`{input}`-output`clustalw_aln`-outfile`{output}`-type`{type_seq}`-n_core`4', sep = "`")
+def run_tcoffee(input: str, output: str, type_seq: str = "PROTEIN", verbose: bool = False):
+    run_command(f't_coffee`{input}`-output`clustalw_aln`-outfile`{output}`-type`{type_seq}`-quiet`{"stderr" if verbose else ""}`-n_core`4', sep = "`")
 
-def run_hmmbuild(input: str, output: str):
-    run_command(f'hmmbuild`{output}`{input}', sep = "`")
+def run_hmmbuild(input: str, output: str, verbose: bool = False, stdout_path: str = None):
+    if not verbose and stdout_path == "":
+        raise ValueError("Tem que adicionar um caminho para o ficheiro de output de hmmbuild")
+    message = ""
+    if not verbose:
+        message = f'`-o`{stdout_path}'
+    run_command(f'hmmbuild`{output}`{input}{message}', sep = "`")
 
 def run_hmmemit(input: str, output: str):
     run_command(f'hmmemit`-o`{output}`{input}', sep = "`")

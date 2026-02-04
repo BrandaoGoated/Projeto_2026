@@ -6,6 +6,7 @@ services:
     image: mparty
     container_name: mparty
     volumes:
-      - .:/app/dev
+      - ./m_party.py:/opt/conda/bin/m_party.py
+      - ./workflow/:/opt/conda/bin/workflow
     stdin_open: true
     tty: true

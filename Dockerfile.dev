@@ -9,6 +9,7 @@ COPY workflow /app/workflow
 COPY resources /app/resources
 COPY config /app/config
 COPY ci/ci_build.sh /app/ci_build.sh
+COPY ci/sequences_PET.fasta /app/sequences_PET.fasta
 
 RUN conda update -n base -c defaults -y conda \
  && conda install -c conda-forge -y mamba \

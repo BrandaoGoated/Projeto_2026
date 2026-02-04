@@ -98,7 +98,7 @@ def clean_sequence_ids(line: str, remove_excess_id: bool, ip: bool, kegg: bool, 
         return re.search(r">([^|]+)\|", line).group(1)
     elif kma_res:
         return line.replace(">", "").strip()
-    else: 
+    else:
         if not remove_excess_id:
             return line.split(" ")[0][1:]
         else:
@@ -651,7 +651,7 @@ def build_hmms_from_seqs(sequences: list,
         seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), ip = True)
     else:
         seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"))
-    input_ids = parse_fasta(sequences, kegg = True, verbose = args.verbose)
+    input_ids = parse_fasta(sequences, kegg = True if from_database == "KEGG" else False, verbose = args.verbose)
     CDHIT_parser.get_clustered_sequences(seqs, PathManager.cdhit_path / "clusters", sequences, input_ids, from_database)
 
     for file in os.listdir(PathManager.cdhit_path / "clusters"):
@@ -659,10 +659,12 @@ def build_hmms_from_seqs(sequences: list,
             if args.input_type_db_const == "nucleic":
                 run_tcoffee(PathManager.cdhit_path / "clusters" / file, 
                             PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"), 
-                            type_seq = "DNA")
+                            type_seq = "DNA",
+                            verbose=args.verbose)
             elif args.input_type_db_const == "protein":
                 run_tcoffee(PathManager.cdhit_path / "clusters" / file,
-                            PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"))
+                            PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"), 
+                            verbose=args.verbose)
         except Exception as exc:
             print(exc)
             if args.verbose:
@@ -670,7 +672,14 @@ def build_hmms_from_seqs(sequences: list,
             continue
 
     for msa in os.listdir(PathManager.tcoffee_path):
-        run_hmmbuild(PathManager.tcoffee_path / msa, PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"))
+        run_hmmbuild(
+            PathManager.tcoffee_path / msa, 
+            PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"), 
+            # args.verbose,
+            True,
+            PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".txt"), 
+        )
+
         if args.consensus:
             run_hmmemit(PathManager.hmm_database_path /Path(msa.split(".")[0]).with_suffix(".hmm"), 
                     PathManager.consensus_path / Path(msa.split(".")[0]).with_suffix(".fasta"))
