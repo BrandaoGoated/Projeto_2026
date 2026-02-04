@@ -1,9 +1,11 @@
-version: '3.8'
 services:
   cli_tool:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: mparty
     container_name: mparty
     volumes:
-      - .:/app
+      - .:/app/dev
     stdin_open: true
     tty: true

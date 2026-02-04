@@ -1,0 +1,19 @@
+FROM continuumio/miniconda3
+
+WORKDIR /app
+
+# copy only what the build needs
+COPY ci/ci_environment.yml /app/ci_environment.yml
+COPY m_party.py /app/m_party.py
+COPY workflow /app/workflow
+COPY resources /app/resources
+COPY config /app/config
+COPY ci/ci_build.sh /app/ci_build.sh
+
+RUN conda update -n base -c defaults -y conda \
+ && conda install -c conda-forge -y mamba \
+ && mamba env update -f /app/ci_environment.yml --name base \
+ && bash /app/ci_build.sh \
+ && conda clean --all -y
+
+CMD ["bash"]
