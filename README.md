@@ -241,8 +241,26 @@ Optional output file is the *config file*, a file with all parameters used in ea
 <br>
 
 ### Results Validation (in development)
+<br>
+<br>
+
+## Development Environmet
 <p>
 
+In order to easily test and develop new code, a `docker compose` file was prepared. Instead of creatinf a brand new environment and manage all the packages versions, this file builds a container with all the necessary dependencies for M-PARTY using a miniconda image, all with a single command. To do this, clone the `dev` branch, and in the root folder, run:
+
+```
+docker compose -f docker_compose.dev.yaml up --build -d
+```
+
+If in a Windows machine, install Docker Desktop, enable integration with WSL distro, and run the docker commands in a WSL shell. <br>
+The `-d` flag runs the container in the background. To enter in a bash shell, run:
+
+```
+docker exec -it mparty bash
+```
+This will run the container in interactive mode. <br>
+While inside the container shell, you can run any of the above commands for each of the workflows with the `m-party ...` alias.
 
 ## Aditional arguments
 <p>

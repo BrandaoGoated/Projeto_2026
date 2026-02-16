@@ -526,11 +526,11 @@ def expand_base_sequences(config):
 
     if config["alignment_method"] == "diamond":
         ### FASTA to DMND
-        diamond_file = build_diamond_DB(query_db, "resources/Data/FASTA/", verbose = config["verbose"])  # ver a cena do overwrite para estes passos
+        diamond_file = DIAMOND_parser.build_diamond_DB(query_db, "resources/Data/FASTA/", verbose = config["verbose"])  # ver a cena do overwrite para estes passos
         Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
-        aligned_tsv = run_DIAMOND(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, args.threads)
+        aligned_tsv = DIAMOND_parser.run_DIAMOND(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, args.threads)
         handle = DIAMOND_parser(aligned_tsv)
-        dic_enzymes = DIAMOND_iter_per_sim(handle)
+        dic_enzymes = DIAMOND_parser.DIAMOND_iter_per_sim(handle)
         if config["verbose"]:
             print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
         save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/DIAMOND_results_per_sim.tsv')
@@ -538,8 +538,8 @@ def expand_base_sequences(config):
     elif config["alignment_method"] == "upimapi":
         # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results', args.input_seqs_db_const, args.threads)
         aligned_tsv = f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results/UPIMAPI_results.tsv'
-        handle = UPIMAPI_parser(aligned_tsv)
-        dic_enzymes = UPIMAPI_iter_per_sim(handle)
+        handle = UPIMAPI_parser.UPIMAPI_parser(aligned_tsv)
+        dic_enzymes = UPIMAPI_parser.UPIMAPI_iter_per_sim(handle)
         if config["verbose"]:
             print(f'Saving IDs for the minimum cutoff values of {config["thresholds"]} percentages of similarity.\n')
         save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/UPIMAPI_results_per_sim.tsv')
@@ -550,7 +550,7 @@ def expand_base_sequences(config):
         # run_BLAST(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv', blastdb_file, 8)
         aligned_tsv = f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv'
         handle = BLAST_parser(aligned_tsv)
-        dic_enzymes = BLAST_iter_per_sim(handle)
+        dic_enzymes = BLAST_parser.BLAST_iter_per_sim(handle)
         if config["verbose"]:
             print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
         Path(f'resources/Data/Tables/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
@@ -878,15 +878,15 @@ def main_pipeline(args):
 
     et = time.time()
     elapsed_time = et - st
-    elapsed_time = elapsed_time * 1000
-    minutes_time = (elapsed_time * 1000) / 60
-    print(f'Execution time: {elapsed_time:.4f} milliseconds and {minutes_time:.2f} minutes!')
+    miliseconds_time = elapsed_time * 1000
+    minutes_time = (elapsed_time / 60)
+    print(f'Execution time: {miliseconds_time:.4f} milliseconds and {minutes_time:.2f} minutes!')
     if args.workflow == "database_construction":
         if args.consensus:
             print("Consensus sequences generated!")
         else:
             print("HMMs generated!")
-            print("Next step should be annotation with the just created HMM database.\nIf you need further guidance, refer to M-PARTY documentation in GitHub")
+            print("Next step should be annotation with the just created HMM database.\nIf you need further guidance, refer to M-PARTY documentation in GitHub.")
     else:
         print(f'M-PARTY has stoped running! Results are displayed in the {args.output} folder :)')
     print("Thank you for using M-PARTY! ")
