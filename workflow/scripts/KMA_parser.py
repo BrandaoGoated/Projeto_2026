@@ -20,11 +20,11 @@ def run_KMA(input_db: str, output_db: str, meta_input: str, meta_out: str, threa
     Returns:
         str: Path of the output file
     """
-    run_command(f'kma`index`-i`{input_db}`-o`{output_db}', sep = "`")
-    run_command(f'kma`-i`{meta_input}`-o`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
     if paired_end and second_input == None:
         raise ValueError("When paired end is flaged, a second input file is mandatory")
-    elif paired_end and second_input != None:
+    run_command(f'kma`index`-i`{input_db}`-o`{output_db}', sep = "`")
+    run_command(f'kma`-i`{meta_input}`-o`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
+    if paired_end and second_input != None:
         run_command(f'kma`-i`{meta_input}`{second_input}`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
     return meta_out
 

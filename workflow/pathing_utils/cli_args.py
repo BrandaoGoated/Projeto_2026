@@ -1,12 +1,14 @@
 import argparse
 import os
+import shutil
 
 def get_parser():
     version = "0.3.0"
 
     parser = argparse.ArgumentParser(description="M-PARTY's main script")
-    parser.add_argument("-i", "--input", help = "input FASTA file containing\
-                        a list of protein sequences to be analysed")
+    parser.add_argument("-i", "--input", nargs = "+", help = 'input FASTA file containing\
+                        a list of protein sequences to be analysed. Can also be a metagenome file when paired with the -it arg set to "metagenome".\
+                        When in metagenome mode, accepts two files: first -> foward reads file; second -> reverse reads file')
     parser.add_argument("--input_seqs_db_const", help = "input a FASTA file with a set of sequences from which the user \
                         wants to create the HMM database from scratch.")
     parser.add_argument("-db", "--database", help = "FASTA database to run against the also user inputted sequences. DIAMOND \
@@ -64,6 +66,18 @@ def get_parser():
 
     return parser
 
+
 def process_arguments(args):
+    if args.workflow != "database_construction":
+        if len(args.input) > 1 and args.input_type != "metagenome":
+            raise ValueError("Non metagenome runs only accept a signle FASTA file (for now)")
+        if len(args.input) > 2 and args.input_type == "metagenome":
+            raise ValueError("Input only accepts two files: (forward reverse)")
     if args.clean and args.hmm_db_name is None:
         raise ValueError("You need to provide the name of the folder to be deleted")
+
+
+def check_dependencies():
+    for tool in ["fasterq-dump", "prefetch"]:
+        if not shutil.which(tool):
+            raise EnvironmentError(f"Required tool '{tool}' not found in PATH.")

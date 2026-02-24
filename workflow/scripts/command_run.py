@@ -38,5 +38,8 @@ def run_hmmemit(input: str, output: str):
 def concat_hmm(input_path: str, output_path: str):
     run_command(f'cat`{input_path}*.hmm`>`{output_path}.hmm', sep = "`")
 
+def run_sra_download(accession: str, output_dir: str):
+    run_command(f"fasterq-dump`{accession}`--outdir`{output_dir}`--split-files`--threads`4", sep = "`")
+
 def concat_fasta(input_path: str, output_path: str):
     run_command(f'cat`{input_path}*.fasta`>`{output_path}.fasta', sep = "`")

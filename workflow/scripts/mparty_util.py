@@ -139,7 +139,7 @@ def ask_for_overwrite(path: str, verbose: bool = False) -> bool:
 	elif overwrite.lower() == "y":
 		if verbose:
 			print("Proceding to overwrite present file...\n")
-		print("[TIP] Next time specify --overwrite = True\n")
+		print("[TIP] Next time specify --overwrite\n")
 		return True
 
 

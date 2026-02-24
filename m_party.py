@@ -447,27 +447,17 @@ def database_construction(config):
             if args.kegg:
                 # if given ID is Kegg Orthology
                 if args.kegg[0].startswith("K"):
-                    if args.input_type_db_const == "nucleic":
-                        kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
-                                                        type_seq = "nuc",
-                                                        ko = args.kegg, 
-                                                        verbose = args.verbose)
-                    else:
-                        kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
-                                                        ko = args.kegg, 
-                                                        verbose = args.verbose)
+                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
+                                                    type_seq = "nuc" if args.input_type_db_const == "nucleic" else "AA",
+                                                    ko = args.kegg, 
+                                                    verbose = args.verbose)
 
                 # If given ID is an E.C. number
                 else:
-                    if args.input_type_db_const == "nucleic":
-                        kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
-                                                        type_seq = "nuc", 
-                                                        ec_number = args.kegg, 
-                                                        verbose = args.verbose)
-                    else:
-                        kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
-                                                        ec_number = args.kegg, 
-                                                        verbose = args.verbose)
+                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
+                                                    type_seq = "nuc" if args.input_type_db_const == "nucleic" else "AA",
+                                                    ec_number = args.kegg, 
+                                                    verbose = args.verbose)
 
                 # Only build HMMs if input is protein or nucleic
                 if args.input_type != "metagenome":
@@ -480,16 +470,14 @@ def database_construction(config):
 
                 # if given ID is a InterProt ID
                 elif args.interpro[0].startswith("IPR") and len(args.interpro) == 1:
-                    filename = args.interpro[0]
-                    inp_seqs = get_IP_sequences(PathManager.fasta_type_dir / Path(filename).with_suffix(".fasta"), 
+                    inp_seqs = get_IP_sequences(PathManager.fasta_type_dir / Path(args.interpro[0]).with_suffix(".fasta"), 
                                                 interpro_ID = args.interpro, 
                                                 reviewed = args.curated, 
                                                 verbose = args.verbose)
 
                 # if given ID is a list of proteins from InterProt
                 elif args.interpro[0].startswith("A"):
-                    filename = args.interpro[0]
-                    inp_seqs = get_IP_sequences(PathManager.fasta_type_dir / Path(filename).with_suffix(".fasta"), 
+                    inp_seqs = get_IP_sequences(PathManager.fasta_type_dir / Path(args.interpro[0]).with_suffix(".fasta"), 
                                                 protein = args.interpro, 
                                                 verbose = args.verbose)
 
@@ -593,7 +581,6 @@ def expand_base_sequences(config):
     ### add cluster per threshol to config
     os.remove("config/config.yaml")
 
-    # 
     if config_format == "yaml":
         files = get_tsv_files(config)
         threshandclust = threshold2clusters(files)
@@ -644,45 +631,55 @@ def build_hmms_from_seqs(sequences: list,
     else:
         filename = sequences.split("/")[-1].split(".")[0]
     
-    CDHIT_parser.run_CDHIT(sequences, PathManager.cdhit_path / Path(filename).with_suffix(".fasta"), args.threads, identperc=ident_perc, type_seq=type_seq)
-    if from_database == "KEGG":
-        seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), kegg = True)
-    elif from_database == "InP":
-        seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), ip = True)
-    else:
-        seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"))
+    CDHIT_parser.run_CDHIT(
+                            sequences, 
+                            PathManager.cdhit_path / Path(filename).with_suffix(".fasta"), 
+                            args.threads, 
+                            identperc=ident_perc,
+                            type_seq=type_seq
+                        )
+    seqs = CDHIT_parser.cdhit_parser(
+                                    PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), 
+                                    kegg = True if from_database == "KEGG" else False,
+                                    ip = True if from_database == "InP" else False
+                                    )
+
     input_ids = parse_fasta(sequences, kegg = True if from_database == "KEGG" else False, verbose = args.verbose)
+
     CDHIT_parser.get_clustered_sequences(seqs, PathManager.cdhit_path / "clusters", sequences, input_ids, from_database)
 
     for file in os.listdir(PathManager.cdhit_path / "clusters"):
         try:
             if args.input_type_db_const == "nucleic":
-                run_tcoffee(PathManager.cdhit_path / "clusters" / file, 
+                run_tcoffee(
+                            PathManager.cdhit_path / "clusters" / file, 
                             PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"), 
-                            type_seq = "DNA",
-                            verbose=args.verbose)
-            elif args.input_type_db_const == "protein":
-                run_tcoffee(PathManager.cdhit_path / "clusters" / file,
-                            PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"), 
-                            verbose=args.verbose)
+                            type_seq = "DNA" if args.input_type_db_const == "nucleic" else "PROTEIN",
+                            verbose=args.verbose
+                            )
+                
         except Exception as exc:
-            print(exc)
+            # refactor to logging
             if args.verbose:
+                print(exc)
                 print(f'[WARNING] T-COFFEE for file {file} not working')
             continue
 
     for msa in os.listdir(PathManager.tcoffee_path):
         run_hmmbuild(
-            PathManager.tcoffee_path / msa, 
-            PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"), 
-            # args.verbose,
-            True,
-            PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".txt"), 
-        )
+                    PathManager.tcoffee_path / msa, 
+                    PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"), 
+                    # args.verbose,
+                    True,
+                    PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".txt"), 
+                    )
 
         if args.consensus:
-            run_hmmemit(PathManager.hmm_database_path /Path(msa.split(".")[0]).with_suffix(".hmm"), 
-                    PathManager.consensus_path / Path(msa.split(".")[0]).with_suffix(".fasta"))
+            run_hmmemit(
+                        PathManager.hmm_database_path /Path(msa.split(".")[0]).with_suffix(".hmm"), 
+                        PathManager.consensus_path / Path(msa.split(".")[0]).with_suffix(".fasta")
+                        )
+            # get consensus sequence
             concat_fasta(PathManager.consensus_path, PathManager.consensus_path / "consensus")
 
     # concat hmm models to a single file
@@ -723,24 +720,44 @@ def annotation(config):
         # if a metagenome is given, runs KMA
         if args.input_type == "metagenome":
             dir_generator_from_list([PathManager.tables_path / 'kma_hits', PathManager.databases_path / 'kma_db' / 'KEGG_cons'])
+            paired_workflow, second_input = False, None
+            if len(args.input) == 2:
+                paired_workflow = True
+                second_input = args.input[1]
             if args.consensus:
-                kma_out = run_KMA(PathManager.consensus_path / Path("consensus").with_suffix(".fasta"), 
-                                PathManager.databases_path / 'kma_db',
-                                args.input, 
-                                PathManager.tables_path / 'kma_hits' / args.input.split(".")[0], 
-                                threads = args.threads)
+                kma_out = run_KMA(
+                                    PathManager.consensus_path / Path("consensus").with_suffix(".fasta"), 
+                                    PathManager.databases_path / 'kma_db',
+                                    args.input, 
+                                    PathManager.tables_path / 'kma_hits' / args.input.split(".")[0], 
+                                    threads = args.threads,
+                                    paired_end=paired_workflow,
+                                    second_input=second_input
+                                )
+                
             else:
                 for file in os.listdir(PathManager.fasta_type_dir):
                     if os.path.isfile(os.path.join(PathManager.fasta_type_dir, file)):
-                        kma_out = run_KMA(PathManager.fasta_type_dir / file, 
-                                        PathManager.databases_path / 'kma_db',
-                                        args.input, 
-                                        PathManager.tables_path / 'kma_hits' / Path(args.input.split("/")[-1].split(".")[0]), 
-                                        threads = args.threads)
+                        kma_out = run_KMA(
+                                            PathManager.fasta_type_dir / file, 
+                                            PathManager.databases_path / 'kma_db',
+                                            args.input, 
+                                            PathManager.tables_path / 'kma_hits' / Path(args.input.split("/")[-1].split(".")[0]), 
+                                            threads = args.threads,
+                                            paired_end=paired_workflow,
+                                            second_input=second_input
+                                        )
                         
             df = kma_parser(kma_out.with_suffix(".res"))
             hit_seqs = get_hit_sequences(df, to_list = True)
-            generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out.with_suffix(".fsa"))
+            generate_output_files(
+                                df, 
+                                hit_seqs, 
+                                kma_out, 
+                                config, 
+                                kma = True, 
+                                kma_alignfile = kma_out.with_suffix(".fsa")
+                                )
 
         # if input file is not a metagenome
         else:
@@ -800,7 +817,7 @@ def annotation(config):
                 rel_df = relevant_info_df(final_df)
                 quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
                 hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-                generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+                
 
             else:
                 for file in file_generator(PathManager.hmmsearch_results_path):
@@ -809,7 +826,9 @@ def annotation(config):
                 rel_df = relevant_info_df(dataframe)
                 quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
                 hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-                generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+            
+            # outout files are always generated
+            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
 
 
 def main_pipeline(args):
