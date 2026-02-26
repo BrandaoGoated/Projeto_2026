@@ -162,9 +162,29 @@ For the case of an InterPro ID (IPR) or a Protein ID (PID). In this database, on
 
 Interpro its not a curated database and so most of his entries are unreviewed. To counter this, you can add the **`--curated`** flag to the previous line
 
-*Note:* All commands must have the **`--hmm_db_name <db_name>`** argument! Otherwise, M-PARTY will instantly raise a `ValueERROR`.
+<br>
+
+### Fetch
+
+Workflow specially created to download metagomic samples from SRA.<p>
+
+**SRA (Sequence Read Archive)**
+
+Disclaimer: This argument **`--sra`** is only available to use with the argument **`-w`** set to `fetch`. This is due to this approach not requiring the 
+creation of an HMM database.
+
+The **`--sra`** argument accepts a list of SRA IDs. It will use the **SRA Toolkit** from NCBI to download the respective FASTQ files, that can later be consumed by KMA to find relevant reads.
+
+```
+m-party -w fetch --sra <SRA IDs list> --hmm_db_name <db_name> OPT[--split_files --use_cache]
+```
+
+**`--split_files`** argument flags SRA toolkit to split files into *forward* and *reverse* reads files.
+**`--use_cache`** triggers a first step of cache driven download. This is ment to (accordingly to NCBI) fasten the download process.
 
 <br>
+
+*Note:* All commands must have the **`--hmm_db_name <db_name>`** argument! Otherwise, M-PARTY will instantly raise a `ValueERROR`.
 
 ### Validation 
 <p>
@@ -190,7 +210,7 @@ m-party -i path/to/input_file -o path/to/output_folder -rt --output_type excel -
 **Full MPARTY Execution**
 <p>
 
-How could not miss, all this can be done with a single command, from the construction of the models, to the annotation of the unknown sequence file.
+All this can be done with a single command, from the construction of the models, to the annotation of the unknown sequence file.
 
 ```
 m-party.py -w both -i path/to/input_file (--input_seqs_db_const path/to/interest_sequences OR --kegg <EC/KO> OR --interpro <IPR>) -o path/to/output_folder -rt --output_type excel --hmm_db_name <db_name> --verbose 
@@ -214,13 +234,25 @@ m-party.py -i path/to/metagenome -o path/to/output_folder -it metagenome --hmm_d
 ```
 *Warning:* This method is only viable for nucleotide sequences, so **`--input_type_db_const nucleic`** is obligatory!
 
+Note that instead of **`--kegg`** you can put the **`--input_seqs_db_const`** argument with a FASTA file of nucleotides to build the HMM database.
+
+<br>
+
+Additionally, it is also allowed to download metagenomic samples directly from SRA (for now).
+
+```
+m-party -w fetch --sra <SRA IDs list> --hmm_db_name <db_name> OPT[--split_files --use_cache]
+```
+
+You can then use the files created to proceed with the annotation using the created HMMs.
+
+<br>
+
 Other way is to just do both workflows at the same time:
 
 ```
 m-party.py -w both -it metagenome -i path/to/metagenome -o path/to/output_folder --kegg <KO> --input_type_db_const nucleic --hmm_db_name <db_name> --verbose
 ```
-
-Note that instead of **`--kegg`** you can put instead the **`--input_seqs_db_const`** argument with a FASTA file of nucleotides.
 
 <br>
 
