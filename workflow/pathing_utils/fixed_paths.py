@@ -10,6 +10,7 @@ class PathManager:
     hmmsearch_results_path = None
     tcoffee_path = None
     cdhit_path = None
+    sra_fastq_path = None
     validated_hmm_dir = None
     fasta_type_dir = None
     consensus_path = None
@@ -24,6 +25,7 @@ def declare_fixed_paths(args: dict):
     PathManager.hmmsearch_results_path = PathManager.system_path / 'results' / args.hmm_db_name / "HMMsearch_results"
     PathManager.tcoffee_path = PathManager.system_path / "resources" / "Alignments" / args.hmm_db_name / "MultipleSequencesAlign" /"T_Coffee"
     PathManager.cdhit_path = PathManager.system_path / "resources" / "Data" / "FASTA" / args.hmm_db_name / "CDHIT"
+    PathManager.sra_fastq_path = PathManager.system_path / "resources" / "Data" / "FASTQ" / args.hmm_db_name / "SRA"
     PathManager.validated_hmm_dir = PathManager.system_path / "resources" / "Data" / "HMMs" / args.hmm_db_name / "validated_HMM"
     PathManager.consensus_path = PathManager.system_path / "resources" / "Data" / "FASTA" / args.hmm_db_name / 'Consensus'
     PathManager.tables_path = PathManager.system_path / "resources" / "Data" / "Tables" / args.hmm_db_name

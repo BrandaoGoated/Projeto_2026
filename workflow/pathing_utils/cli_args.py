@@ -38,6 +38,10 @@ def get_parser():
                         default = "workflow/Snakefile")
     parser.add_argument("-ex", "--expansion", default = False, action = "store_true", help = "Decides wheter to expand the interest dataset. Defaults to False.")
     parser.add_argument("--kegg", help = "input KEGG ID(s) to download respective sequences, in order to build a pHMM based on those", nargs = "+")
+    parser.add_argument("--sra", help = 'input SRA ID(s) to download respective metagenomic files, in order to later align using KMA and annotate \
+                        based on previously constructed HMMs. Should be used toguether with the "-w fetch" workflow tag.', nargs = "+")
+    parser.add_argument("--use_cache", action = "store_true", default = False, help = "flag to trigger SRA files download to cache as a first step. Defaults to False.")
+    parser.add_argument("--split_files", action = "store_true", default = False, help = "flag to trigger SRA download to split the reads files into forward and reverse read files. Defaults to False.")
     parser.add_argument("--interpro", help = "input InterPro ID(s) to download the respective sequences, in order to build a pHMM based on those", nargs = "+")
     parser.add_argument("--curated", default = False, action = "store_true", help = "call to only retrieve reviewed sequences from InterPro")
     parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to max number of available logical CPUs.",
@@ -52,7 +56,7 @@ def get_parser():
     parser.add_argument("--concat_hmm_models", action = "store_false", default = True, help = "call to not concatenate HMM models into a single file. Defaults to True")
     parser.add_argument("--unlock", action = "store_true", default = False, help = "could be required after forced workflow termination")
     parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines the workflow to follow,\
-                        between "annotation", "database_construction" and "both". Latter keyword makes the database construction\
+                        between "annotation", "database_construction", "fetch" and "both". Latter keyword makes the database construction\
                         first and posterior annotation. Defaults to "annotation"')
     parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
                         advanced users.", default = None)
@@ -68,7 +72,13 @@ def get_parser():
 
 
 def process_arguments(args):
-    if args.workflow != "database_construction":
+    if args.workflow == "fetch" and args.sra == "":
+        raise ValueError("Provide the SRA IDs to download the respective FASTQ files")
+    if args.workflow != "fetch" and args.use_cache:
+        raise ValueError('The "use_cache" flag is only availabe for the "fetch" workflow to download reads files from SRA.')
+    if args.workflow != "fetch" and args.split_files:
+        raise ValueError('The "split_files" flag is only availabe for the "fetch" workflow to download reads files from SRA.')
+    if args.workflow != "database_construction" and args.workflow != "fetch":
         if len(args.input) > 1 and args.input_type != "metagenome":
             raise ValueError("Non metagenome runs only accept a signle FASTA file (for now)")
         if len(args.input) > 2 and args.input_type == "metagenome":

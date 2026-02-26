@@ -26,6 +26,7 @@ from tqdm import tqdm
 import snakemake
 import itertools
 import threading
+import logging
 
 from workflow.pathing_utils.cli_args import get_parser, process_arguments
 from workflow.scripts.hmmsearch_run import run_hmmsearch
@@ -38,7 +39,7 @@ import workflow.scripts.CDHIT_parser as CDHIT_parser
 from workflow.scripts.mparty_util import build_upi_query_db, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id, ask_for_overwrite
 import workflow.scripts.BLAST_parser as BLAST_parser
 import workflow.scripts.DIAMOND_parser as DIAMOND_parser
-from workflow.scripts.command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
+from workflow.scripts.command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta, run_sra_download, download_sra_robust
 from workflow.scripts.InterPro_retriever import get_IP_sequences
 from workflow.scripts.KEGG_retriever import get_kegg_genes
 from workflow.scripts.KMA_parser import run_KMA, kma_parser, get_hit_sequences
@@ -48,10 +49,30 @@ import workflow.scripts.output_scripts.text_report_utils as text_report_utils
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
 from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover, check_results_directory, file_generator
 
+
+def setup_logging(verbose: bool = False, log_file: Path = None):
+    level = logging.DEBUG if verbose else logging.INFO
+
+    handlers = [
+        logging.StreamHandler(sys.stdout)
+    ]
+
+    if log_file:
+        handlers.append(logging.FileHandler(log_file))
+
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=handlers
+    )
+
 ### MAJOR WORKAROUND FOR NOW ###
 # get CLI arguments
 parser = get_parser()
 args = parser.parse_args()
+
+setup_logging(verbose=args.verbose, log_file=args.log_file)
 
 process_arguments(args)
 
@@ -156,7 +177,8 @@ def write_config(input_file: str, out_dir: str, to_output: bool  = False):
         out_dir (str): Name for the output directory where result shall be directed
         config_filename (str): Name to be given to the new config file
     """
-    if args.workflow == "database_construction" and args.input == None:
+    # no input sequences expected
+    if args.workflow == "database_construction" or args.workflow == "fetch" and args.input == None:
         seq_ids = []
     if args.input != None:
         file_stats = os.stat(input_file)
@@ -421,6 +443,44 @@ def check_db_existance(config) -> bool:
         return True
 
 
+def fetch_sra(config):
+    """Pipeline for the database construction workflow
+
+    Args:
+        config (file): The parsed config file object
+
+    Raises:
+        ValueError: If input type is metagenome at the same time as the interpro flag is given with an ID
+    """
+    print("Starting download of SRA files...\n")
+    time.sleep(1)
+    
+    if check_db_existance(config):
+        
+        if args.split_files:
+            print("Samples will be splitted into forward and reverse reads files.")
+
+        if not args.use_cache:
+            print('Downloading directly to file. If taking to much time, turn on "--use_cache"')
+
+            for accession in tqdm(args.sra):
+                run_sra_download(
+                                accession, 
+                                str(PathManager.sra_fastq_path),
+                                args.split_files,
+                                args.verbose
+                                )
+        else:
+            for accession in tqdm(args.sra):
+                download_sra_robust(
+                                accession, 
+                                str(PathManager.sra_fastq_path),
+                                args.split_files,
+                                args.verbose
+                                )
+            
+    return True
+
 
 def database_construction(config):
     """Pipeline for the database construction workflow
@@ -443,7 +503,15 @@ def database_construction(config):
 
         else:
             # make necessary directories
-            dir_generator_from_list([PathManager.tcoffee_path, PathManager.cdhit_path / "clusters", PathManager.hmm_database_path])
+            dir_generator_from_list(
+                                        [
+                                            PathManager.tcoffee_path, 
+                                            PathManager.cdhit_path / "clusters", 
+                                            PathManager.hmm_database_path, 
+                                            PathManager.sra_fastq_path
+                                        ]
+                                    )
+            
             if args.kegg:
                 # if given ID is Kegg Orthology
                 if args.kegg[0].startswith("K"):
@@ -493,9 +561,11 @@ def database_construction(config):
                 else:
                     # Start HMM construction
                     shutil.copyfile(args.input_seqs_db_const, PathManager.fasta_type_dir / args.input_seqs_db_const.split("/")[-1].split(".")[0])
-                    build_hmms_from_seqs(sequences=args.input_seqs_db_const,
-                                    type_seq=args.input_type_db_const, 
-                                    from_database=args.input_seqs_db_const.split("/")[-1].split(".")[0])
+                    build_hmms_from_seqs(
+                                        sequences=args.input_seqs_db_const,
+                                        type_seq=args.input_type_db_const, 
+                                        from_database=args.input_seqs_db_const.split("/")[-1].split(".")[0]
+                                        )
 
             # remove files wrongly going to the root dir
             files = [f for f in os.listdir('.') if os.path.isfile(f)]
@@ -881,6 +951,9 @@ def main_pipeline(args):
     # runs if input sequences are given
     if args.workflow == "annotation" and args.input is not None:
         annotation(config)
+    
+    elif args.workflow == "fetch":
+        fetch_sra(config)
 
     ### DATABASE CONSTRUCTION ###
     elif args.workflow == "database_construction":
@@ -891,7 +964,7 @@ def main_pipeline(args):
         database_construction(config=config)
         annotation(config)
 
-    elif args.workflow != "annotation" and args.workflow != "database_construction" and args.workflow != "both":
+    elif args.workflow not in  ["annotation", "database_construction", "both", "fetch"]:
         raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction' or 'both'. Chose one from the list.")
 
 
