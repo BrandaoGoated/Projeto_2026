@@ -63,6 +63,12 @@ def run_sra_download(accession: str, output_dir: str, split_files: bool, verbose
     run_command(command)
 
 def download_sra_robust(accession: str, output_dir: str, split_files: bool, verbose: bool):
+    lock_file = Path(f"/app/{accession}/{accession}.sra.lock")
+    
+    if lock_file.exists():
+        logger.warning(f"Stale lock file found for {accession}, removing it...")
+        lock_file.unlink()
+        
     cache_path = Path.home() / "ncbi" / "public" / "sra" / f"{accession}.sra"
     
     try:

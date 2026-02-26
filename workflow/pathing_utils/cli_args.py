@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import Path
 import shutil
 
 def get_parser():
@@ -60,12 +61,13 @@ def get_parser():
                         first and posterior annotation. Defaults to "annotation"')
     parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
                         advanced users.", default = None)
+    parser.add_argument("--log_file", type=Path, default=None, help="Optional path to save logs.")
     parser.add_argument("--clean", default = False, action = "store_true", help = "could be required after running tool multiple times and files inside \
-                        databases start to mix up. Defaults to False")
-    parser.add_argument("--overwrite", action = "store_true", default = False, help = "Call to overwrite inputted files. Defaults to False")
-    parser.add_argument("--verbose", action = "store_true", default = False, help = "Call so M-PARTY display more messaging")
+                        databases start to mix up. Defaults to False.")
+    parser.add_argument("--overwrite", action = "store_true", default = False, help = "Call to overwrite inputted files. Defaults to False.")
+    parser.add_argument("--verbose", action = "store_true", default = False, help = "Call to enable debug logging and increse messaging. Defaults to False.")
     parser.add_argument("--display_config", default = False, action = "store_true", 
-                        help = "declare to output the written config file together with results. Useful in case of debug")
+                        help = "declare to output the written config file together with results. Useful in case of debug.")
     parser.add_argument("-v", "--version", action = "version", version = "M-PARTY {}".format(version))
 
     return parser

@@ -458,10 +458,10 @@ def fetch_sra(config):
     if check_db_existance(config):
         
         if args.split_files:
-            print("Samples will be splitted into forward and reverse reads files.")
+            print("Samples will be splitted into forward and reverse reads files...\n")
 
         if not args.use_cache:
-            print('Downloading directly to file. If taking to much time, turn on "--use_cache"')
+            print('Downloading directly to file. If taking to much time, turn on "--use_cache"...\n')
 
             for accession in tqdm(args.sra):
                 run_sra_download(
