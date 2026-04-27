@@ -50,9 +50,6 @@ def run_hmmemit(input: str, output: str):
 def concat_hmm(input_path: str, output_path: str):
     run_command(f'cat`{input_path}*.hmm`>`{output_path}.hmm', sep = "`")
 
-def run_sra_download(accession: str, output_dir: str):
-    run_command(f"fasterq-dump`{accession}`--outdir`{output_dir}`--split-files`--threads`4", sep = "`")
-
 def run_sra_download(accession: str, output_dir: str, split_files: bool, verbose: bool):
     command = ["fasterq-dump", accession, "--outdir", output_dir, "--threads", "4"]
     if split_files:

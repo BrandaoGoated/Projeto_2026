@@ -22,24 +22,41 @@ def run_KMA(input_db: str, output_db: str, meta_input: str, meta_out: str, threa
     """
     if paired_end and second_input == None:
         raise ValueError("When paired end is flaged, a second input file is mandatory")
-    run_command(f'kma`index`-i`{input_db}`-o`{output_db}', sep = "`")
-    run_command(f'kma`-i`{meta_input}`-o`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
-    if paired_end and second_input != None:
-        run_command(f'kma`-i`{meta_input}`{second_input}`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
+    
+
+    # Build KMA index
+    print("Building KMA index")
+    # run_command(f'kma`index`-i`{input_db}`-o`{output_db}', sep = "`")
+    command = ["kma", "index", "-i", input_db, "-o", output_db]
+    run_command(command)
+
+    # Run KMA
+    if not paired_end:
+        # run_command(f'kma`-i`{meta_input}`-o`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
+        command = ["kma", "-i", meta_input, "-o", meta_out, "-t_db", output_db, "-t", threads, "-1t1", "-mem_mode", "-ef"]
+
+    else:
+        # run_command(f'kma`-i`{meta_input}`{second_input}`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
+        command = ["kma", "-i", meta_input, second_input, "-o", meta_out, "-t_db", output_db, "-t", threads, "-1t1", "-mem_mode", "-ef"]
+    
+    run_command(command)
+        
     return meta_out
 
-def kma_parser(input_file: str) -> pd.DataFrame:
-    """Process the output of the KMA run for the desired information
+def kma_parser(input_file: str, identity_threshold: int = 80, coverage_threshold: int = 60) -> pd.DataFrame:
+    """Process the output of the KMA run for the desired information. Will dismiss entries with thresholds superior to the ones provided.
 
     Args:
         input_file (str): Path for the KMA output file
+        identity_threshold (int, optional): Identity threshold used to filter out results. Defaults to 80
+        coverage_threshold (int, optional): Coverage threshold used to filter out results. Defaults to 60
 
     Returns:
         pd.Dataframe: A pandas Dataframe with relevant information
     """
     df = pd.read_csv(input_file, sep = "\t", decimal = ",")
-    df1 = df.loc[(pd.to_numeric(df["Template_Identity"]) >= 80) & 
-                 (pd.to_numeric(df["Template_Coverage"]) >= 60)]
+    df1 = df.loc[(pd.to_numeric(df["Template_Identity"]) >= identity_threshold) & 
+                 (pd.to_numeric(df["Template_Coverage"]) >= coverage_threshold)]
     return df1[["#Template", "Template_Identity", "Template_Coverage", "q_value", "p_value"]]
 
 def get_hit_sequences(dataframe: pd.DataFrame, to_list: bool = False) -> list:

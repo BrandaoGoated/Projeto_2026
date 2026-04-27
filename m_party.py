@@ -444,7 +444,7 @@ def check_db_existance(config) -> bool:
 
 
 def fetch_sra(config):
-    """Pipeline for the database construction workflow
+    """Function to fetch SRA files from Sequence Reads Archive
 
     Args:
         config (file): The parsed config file object
@@ -776,129 +776,129 @@ def validate_hmm(config):
 
 def annotation(config):
 
-        print("Annotation workflow started...\n")
-        time.sleep(2)
+    print("Annotation workflow started...\n")
+    time.sleep(2)
 
-        if args.hmm_validation:
+    if args.hmm_validation:
 
-            if not os.path.exists(PathManager.validated_hmm_dir):
-                validate_hmm(config=config)
-            else:
-                print("Validated HMM already up, proceding to annotation...\n")
-                time.sleep(1)
-
-        # if a metagenome is given, runs KMA
-        if args.input_type == "metagenome":
-            dir_generator_from_list([PathManager.tables_path / 'kma_hits', PathManager.databases_path / 'kma_db' / 'KEGG_cons'])
-            paired_workflow, second_input = False, None
-            if len(args.input) == 2:
-                paired_workflow = True
-                second_input = args.input[1]
-            if args.consensus:
-                kma_out = run_KMA(
-                                    PathManager.consensus_path / Path("consensus").with_suffix(".fasta"), 
-                                    PathManager.databases_path / 'kma_db',
-                                    args.input, 
-                                    PathManager.tables_path / 'kma_hits' / args.input.split(".")[0], 
-                                    threads = args.threads,
-                                    paired_end=paired_workflow,
-                                    second_input=second_input
-                                )
-                
-            else:
-                for file in os.listdir(PathManager.fasta_type_dir):
-                    if os.path.isfile(os.path.join(PathManager.fasta_type_dir, file)):
-                        kma_out = run_KMA(
-                                            PathManager.fasta_type_dir / file, 
-                                            PathManager.databases_path / 'kma_db',
-                                            args.input, 
-                                            PathManager.tables_path / 'kma_hits' / Path(args.input.split("/")[-1].split(".")[0]), 
-                                            threads = args.threads,
-                                            paired_end=paired_workflow,
-                                            second_input=second_input
-                                        )
-                        
-            df = kma_parser(kma_out.with_suffix(".res"))
-            hit_seqs = get_hit_sequences(df, to_list = True)
-            generate_output_files(
-                                df, 
-                                hit_seqs, 
-                                kma_out, 
-                                config, 
-                                kma = True, 
-                                kma_alignfile = kma_out.with_suffix(".fsa")
-                                )
-
-        # if input file is not a metagenome
+        if not os.path.exists(PathManager.validated_hmm_dir):
+            validate_hmm(config=config)
         else:
-            if args.hmm_validation:
-                for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
-                    hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
-                    run_hmmsearch(args.input, 
-                                hmm_file,
-                                PathManager.hmmsearch_results_path / hmmserach_out_file,
-                                verbose = args.verbose, 
-                                eval = 0.00001,
-                                out_type = args.hmms_output_type)
-            else:
-            # if models have been concatenated
-                if args.concat_hmm_models:
-                    print(PathManager.hmm_database_path)
-                    for hmm_file in file_generator(PathManager.hmm_database_path / "concat_model", full_path = True):
-                        hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
-                        if os.path.exists(PathManager.hmmsearch_results_path / hmmserach_out_file):
-                            os.remove(PathManager.hmmsearch_results_path / hmmserach_out_file)
-                            run_hmmsearch(args.input, 
-                                        hmm_file, 
-                                        PathManager.hmmsearch_results_path / hmmserach_out_file, 
-                                        verbose = args.verbose, 
-                                        eval = 0.00001,
-                                        out_type = args.hmms_output_type)
-                        else:
-                            PathManager.hmmsearch_results_path.mkdir(parents = True, exist_ok = True)
-                            run_hmmsearch(args.input, 
-                                        hmm_file, 
-                                        PathManager.hmmsearch_results_path / hmmserach_out_file, 
-                                        verbose = args.verbose, 
-                                        eval = 0.00001,
-                                        out_type = args.hmms_output_type)
-                else:
-                    p = os.listdir(PathManager.hmm_database_path)
-                    for thresh in p:
-                        path = os.path.join(PathManager.hmm_database_path, thresh)
-                        Path(path).mkdir(parents = True, exist_ok = True)
-                        hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
-                        for hmm_file in file_generator(path, full_path = True):
-                            run_hmmsearch(args.input, 
-                                        hmm_file, 
-                                        path / hmmserach_out_file, 
-                                        verbose = args.verbose, 
-                                        eval = 0.00001,
-                                        out_type = args.hmms_output_type)
-                        BLAST_parser.concat_hmmsearch_results(path, PathManager.hmmsearch_results_path)
+            print("Validated HMM already up, proceding to annotation...\n")
+            time.sleep(1)
 
-            if args.expansion:
-                lista_dataframes = dict.fromkeys(config["thresholds"])
-                for file in file_generator(PathManager.hmmsearch_results_path):
-                    thresh = file.split("_")[-1].split(".")[0]
-                    lista_dataframes[thresh] = read_hmmsearch_table(PathManager.hmmsearch_results_path + file)
-
-                final_df = concat_df_byrow(df_dict = lista_dataframes)
-                rel_df = relevant_info_df(final_df)
-                quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-                hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-                
-
-            else:
-                for file in file_generator(PathManager.hmmsearch_results_path):
-                    if args.input.split("/")[-1].split(".")[0] in file:
-                        dataframe = read_hmmsearch_table(PathManager.hmmsearch_results_path / file)
-                rel_df = relevant_info_df(dataframe)
-                quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-                hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
+    # if a metagenome is given, runs KMA
+    if args.input_type == "metagenome":
+        dir_generator_from_list([PathManager.tables_path / 'kma_hits', PathManager.databases_path / 'kma_db' / 'KEGG_cons'])
+        paired_workflow, second_input = False, None
+        if len(args.input) == 2:
+            paired_workflow = True
+            second_input = args.input[1]
+        if args.consensus:
+            kma_out = run_KMA(
+                                PathManager.consensus_path / Path("consensus").with_suffix(".fasta"), 
+                                PathManager.databases_path / 'kma_db',
+                                args.input, 
+                                PathManager.tables_path / 'kma_hits' / args.input.split(".")[0], 
+                                threads = args.threads,
+                                paired_end=paired_workflow,
+                                second_input=second_input
+                            )
             
-            # outout files are always generated
-            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+        else:
+            for file in os.listdir(PathManager.fasta_type_dir):
+                if os.path.isfile(os.path.join(PathManager.fasta_type_dir, file)):
+                    kma_out = run_KMA(
+                                        PathManager.fasta_type_dir / file, 
+                                        PathManager.databases_path / 'kma_db',
+                                        args.input, 
+                                        PathManager.tables_path / 'kma_hits' / Path(args.input.split("/")[-1].split(".")[0]), 
+                                        threads = args.threads,
+                                        paired_end=paired_workflow,
+                                        second_input=second_input
+                                    )
+                    
+        df = kma_parser(kma_out.with_suffix(".res"), )
+        hit_seqs = get_hit_sequences(df, to_list = True)
+        generate_output_files(
+                            df, 
+                            hit_seqs, 
+                            kma_out, 
+                            config, 
+                            kma = True, 
+                            kma_alignfile = kma_out.with_suffix(".fsa")
+                            )
+
+    # if input file is not a metagenome
+    else:
+        if args.hmm_validation:
+            for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
+                hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
+                run_hmmsearch(args.input, 
+                            hmm_file,
+                            PathManager.hmmsearch_results_path / hmmserach_out_file,
+                            verbose = args.verbose, 
+                            eval = 0.00001,
+                            out_type = args.hmms_output_type)
+        else:
+        # if models have been concatenated
+            if args.concat_hmm_models:
+                print(PathManager.hmm_database_path)
+                for hmm_file in file_generator(PathManager.hmm_database_path / "concat_model", full_path = True):
+                    hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
+                    if os.path.exists(PathManager.hmmsearch_results_path / hmmserach_out_file):
+                        os.remove(PathManager.hmmsearch_results_path / hmmserach_out_file)
+                        run_hmmsearch(args.input, 
+                                    hmm_file, 
+                                    PathManager.hmmsearch_results_path / hmmserach_out_file, 
+                                    verbose = args.verbose, 
+                                    eval = 0.00001,
+                                    out_type = args.hmms_output_type)
+                    else:
+                        PathManager.hmmsearch_results_path.mkdir(parents = True, exist_ok = True)
+                        run_hmmsearch(args.input, 
+                                    hmm_file, 
+                                    PathManager.hmmsearch_results_path / hmmserach_out_file, 
+                                    verbose = args.verbose, 
+                                    eval = 0.00001,
+                                    out_type = args.hmms_output_type)
+            else:
+                p = os.listdir(PathManager.hmm_database_path)
+                for thresh in p:
+                    path = os.path.join(PathManager.hmm_database_path, thresh)
+                    Path(path).mkdir(parents = True, exist_ok = True)
+                    hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
+                    for hmm_file in file_generator(path, full_path = True):
+                        run_hmmsearch(args.input, 
+                                    hmm_file, 
+                                    path / hmmserach_out_file, 
+                                    verbose = args.verbose, 
+                                    eval = 0.00001,
+                                    out_type = args.hmms_output_type)
+                    BLAST_parser.concat_hmmsearch_results(path, PathManager.hmmsearch_results_path)
+
+        if args.expansion:
+            lista_dataframes = dict.fromkeys(config["thresholds"])
+            for file in file_generator(PathManager.hmmsearch_results_path):
+                thresh = file.split("_")[-1].split(".")[0]
+                lista_dataframes[thresh] = read_hmmsearch_table(PathManager.hmmsearch_results_path + file)
+
+            final_df = concat_df_byrow(df_dict = lista_dataframes)
+            rel_df = relevant_info_df(final_df)
+            quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
+            
+
+        else:
+            for file in file_generator(PathManager.hmmsearch_results_path):
+                if args.input.split("/")[-1].split(".")[0] in file:
+                    dataframe = read_hmmsearch_table(PathManager.hmmsearch_results_path / file)
+            rel_df = relevant_info_df(dataframe)
+            quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
+        
+        # outout files are always generated
+        generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
 
 
 def main_pipeline(args):
@@ -965,7 +965,7 @@ def main_pipeline(args):
         annotation(config)
 
     elif args.workflow not in  ["annotation", "database_construction", "both", "fetch"]:
-        raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction' or 'both'. Chose one from the list.")
+        raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction', 'both' or 'fetch'. Chose one from the list.")
 
 
     et = time.time()
