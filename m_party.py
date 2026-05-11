@@ -74,8 +74,6 @@ args = parser.parse_args()
 
 setup_logging(verbose=args.verbose, log_file=args.log_file)
 
-process_arguments(args)
-
 
 def read_config(filename: str) -> tuple:
     config_type = filename.split(".")[-1]
@@ -186,7 +184,7 @@ def write_config(input_file: str, out_dir: str, to_output: bool  = False):
             seq_ids = "too_big"
         else:
             seq_ids = parse_fasta(input_file)
-    if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
+    if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.workflow != "fetch" and args.input == None:
         out_dir = None
     else:
         check_results_directory(out_dir)
@@ -989,7 +987,7 @@ def main():
     # parser = get_parser()
     # args = parser.parse_args()
 
-    # process_arguments(args)
+    process_arguments(args)
 
     # check arguments
     check_config(args=args)

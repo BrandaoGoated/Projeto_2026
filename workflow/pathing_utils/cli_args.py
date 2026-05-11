@@ -56,9 +56,10 @@ def get_parser():
                         inputing them this way.")
     parser.add_argument("--concat_hmm_models", action = "store_false", default = True, help = "call to not concatenate HMM models into a single file. Defaults to True")
     parser.add_argument("--unlock", action = "store_true", default = False, help = "could be required after forced workflow termination")
-    parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines the workflow to follow,\
-                        between "annotation", "database_construction", "fetch" and "both". Latter keyword makes the database construction\
-                        first and posterior annotation. Defaults to "annotation"')
+    parser.add_argument("-w", "--workflow", 
+                    choices=["annotation", "database_construction", "fetch", "both"],
+                    default="annotation", 
+                    help='defines the workflow to follow. Defaults to "annotation"')
     parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
                         advanced users.", default = None)
     parser.add_argument("--log_file", type=Path, default=None, help="Optional path to save logs.")
@@ -74,6 +75,9 @@ def get_parser():
 
 
 def process_arguments(args):
+    if args.workflow not in ["fetch", "database_construction", "annotation", "both"]:
+        raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction', 'both' or 'fetch'. Chose one from the list.")
+
     if args.workflow == "fetch" and args.sra == "":
         raise ValueError("Provide the SRA IDs to download the respective FASTQ files")
     if args.workflow != "fetch" and args.use_cache:

@@ -2,19 +2,20 @@ FROM continuumio/miniconda3
 
 WORKDIR /app
 
-# copy only what the build needs
 COPY ci/ci_environment.yml /app/ci_environment.yml
+COPY ci/ci_build.sh /app/ci_build.sh
+COPY ci/sequences_PET.fasta /app/sequences_PET.fasta
 COPY m_party.py /app/m_party.py
 COPY workflow /app/workflow
 COPY resources /app/resources
 COPY config /app/config
-COPY ci/ci_build.sh /app/ci_build.sh
-COPY ci/sequences_PET.fasta /app/sequences_PET.fasta
 
-RUN conda update -n base -c defaults -y conda \
- && conda install -c conda-forge -y mamba \
- && mamba env update -f /app/ci_environment.yml --name base \
- && bash /app/ci_build.sh \
+RUN conda install -c conda-forge -y mamba \
  && conda clean --all -y
+
+RUN mamba env update -f /app/ci_environment.yml --name base \
+ && conda clean --all -y
+
+RUN bash /app/ci_build.sh
 
 CMD ["bash"]
