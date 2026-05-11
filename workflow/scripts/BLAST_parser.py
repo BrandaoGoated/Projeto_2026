@@ -43,7 +43,9 @@ def build_blast_DB(input_fasta: str, output_path: str, input_type: str, verbose:
         input_type = "nucl"
     if verbose:
         print("Building BLAST database file...\n")
-    run_command(f'makeblastdb`-in`{input_fasta}`-out`{blast_dbname}`-dbtype`{input_type}`-title`BLAST_run`-parse_seqids', sep = "`")
+    command = ["makeblastdb", "-in", input_fasta, "-out", blast_dbname, "-dbtype", input_type, "-title", "BLAST_run", "-parse_seqids"]
+    # run_command(f'makeblastdb`-in`{input_fasta}`-out`{blast_dbname}`-dbtype`{input_type}`-title`BLAST_run`-parse_seqids', sep = "`")
+    run_command(command)
     if verbose:
         print("Done\n")
     return blast_dbname
@@ -61,7 +63,9 @@ def run_BLAST(query: str, outpath: str, database: str, threads: int) -> str:
     Returns:
         str: Path to the final .TSV file. 
     """
-    run_command(f'blastp`-query`{query}`-out`{outpath}`-db`{database}`-num_threads`{threads}`-outfmt`6', sep = "`")
+    command = ["blastp", "-query", query, "-out", outpath, "-db", database, "-num_threads", threads, "-outfmt", "6"]
+    # run_command(f'blastp`-query`{query}`-out`{outpath}`-db`{database}`-num_threads`{threads}`-outfmt`6', sep = "`")
+    run_command(command)
     return outpath
 
 

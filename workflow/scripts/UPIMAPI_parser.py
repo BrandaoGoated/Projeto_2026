@@ -17,7 +17,9 @@ def run_UPIMAPI(query: str, outpath: str, upi_database: str, threads: int) -> st
     Returns:
         str: Path to the final TSV file.
     """
-    run_command(f'upimapi.py`-i`{query}`-o`{outpath}`--database`{upi_database}`-t`{threads}', sep = "`")
+    command = ["upimapi.py", "-i", query, "-o", outpath, "--database", upi_database, "-t", threads]
+    # run_command(f'upimapi.py`-i`{query}`-o`{outpath}`--database`{upi_database}`-t`{threads}', sep = "`")
+    run_command(command)
     return outpath + "/UPIMAPI_results.tsv"
 
 

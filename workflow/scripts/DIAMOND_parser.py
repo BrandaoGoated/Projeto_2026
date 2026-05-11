@@ -4,23 +4,25 @@ from workflow.scripts.command_run import run_command
 from workflow.scripts.mparty_util import compress_fasta, return_fasta_content
 
 def build_diamond_DB(input_fasta: str, output_path: str, verbose: bool = False) -> str:
-	"""Builds a dmnd database file from a fasta file to run with DIAMOND.
+    """Builds a dmnd database file from a fasta file to run with DIAMOND.
 
-	Args:
-		input_fasta (str): path for the fasta file.
-		output_path (str): path for the output diamond database.
-		verbose (bool): prints aditional information. Defaults to False.
+    Args:
+        input_fasta (str): path for the fasta file.
+        output_path (str): path for the output diamond database.
+        verbose (bool): prints aditional information. Defaults to False.
 
-	Returns:
-		str: name of the resulting file.
-	"""
-	dmnd_dbname = f'{output_path}/{input_fasta.split("/")[-1].split(".")[0]}'
-	if verbose:
-		print("Building binary DIAMOND database file...\n")
-	run_command(f'diamond`makedb`--in`{input_fasta}`-d`{dmnd_dbname}', sep = "`")
-	if verbose:
-		print("Done\n")
-	return dmnd_dbname + ".dmnd"
+    Returns:
+        str: name of the resulting file.
+    """
+    dmnd_dbname = f'{output_path}/{input_fasta.split("/")[-1].split(".")[0]}'
+    if verbose:
+        print("Building binary DIAMOND database file...\n")
+    command = ["diamond", "makedb", "--in", input_fasta, "-d", dmnd_dbname]
+    # run_command(f'diamond`makedb`--in`{input_fasta}`-d`{dmnd_dbname}', sep = "`")
+    run_command(command)
+    if verbose:
+        print("Done\n")
+    return dmnd_dbname + ".dmnd"
 
 
 def run_DIAMOND(query: str, outpath: str, database: str, threads: int) -> str:
@@ -35,7 +37,9 @@ def run_DIAMOND(query: str, outpath: str, database: str, threads: int) -> str:
     Returns:
         str: Path to the final TSV file.
     """
-    run_command(f'diamond`blastp`-q`{query}`-o`{outpath}`-d`{database}`--threads`{threads}`--fast`--outfmt`6`-b`0.36036930084228513`-k`1`-c`4`--evalue`0.001', sep = "`")
+    command = ["diamond", "blastp", "-q", query, "-o", outpath, "-d", database, "--threads", threads, "--fast", "--outfmt", "6", "-b", "0.36036930084228513", "-k", "1", "-c", "4", "--evalue", "0.001"]
+    # run_command(f'diamond`blastp`-q`{query}`-o`{outpath}`-d`{database}`--threads`{threads}`--fast`--outfmt`6`-b`0.36036930084228513`-k`1`-c`4`--evalue`0.001', sep = "`")
+    run_command(command)
     return outpath
 
 

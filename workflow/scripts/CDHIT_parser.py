@@ -1,7 +1,5 @@
 import re
-import pandas as pd
 from workflow.scripts.command_run import run_command
-import time
 
 
 def run_CDHIT(input: str, output: str, threads: int, type_seq: str = "AA", identperc: float = 0.7):
@@ -15,9 +13,13 @@ def run_CDHIT(input: str, output: str, threads: int, type_seq: str = "AA", ident
         identperc (float, optional): Minimum identity between sequences to be clustered. Defaults to 0.7
     """
     if type_seq == "AA":
-        run_command(f'cd-hit`-i`{input}`-o`{output}`-c`{identperc}`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
+        command = ["cd-hit", "-i", input, "-o", output, "-c", identperc, "-n", "5", "-M", "16000", "-d", "0", "-T", threads]
+        # run_command(f'cd-hit`-i`{input}`-o`{output}`-c`{identperc}`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
+        run_command(command)
     else:
-        run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.8`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
+        command = ["cd-hit", "-i", input, "-o", output, "-c", "0-8", "-n", "5", "-M", "16000", "-d", "0", "-T", threads]
+        # run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.8`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
+        run_command(command)
 
 def cdhit_parser(txtfile: str, ip: bool = False, kegg: bool = False) -> dict:
     """Receives a text file with a similar format as a FASTA file, and returns a dictionary with the number of the cluster as key and the UniProt ID's for the sequences inside each cluster as value.
