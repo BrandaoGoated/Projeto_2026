@@ -34,7 +34,9 @@ def docker_run_hmmsearch(volume, hmm_file, db, output_file):
     run_command(f'docker`run`--rm`-v`{volume}`biocontainers/hmmer:v3.2.1dfsg-1-deb_cv1`hmmsearch`{hmm_file}`{db}`>`{output_file}', sep="`")
 
 def run_tcoffee(input: str, output: str, type_seq: str = "PROTEIN", verbose: bool = False):
-    run_command(f't_coffee`{input}`-output`clustalw_aln`-outfile`{output}`-type`{type_seq}`-quiet`{"stderr" if verbose else ""}`-n_core`4', sep = "`")
+    command = ["t_coffee", str(input), "-output", "clustalw_aln", "-outfile", str(output), "-type", type_seq, "-quiet", "stderr" if verbose else "", "-n_core", "4"]
+    # run_command(f't_coffee`{input}`-output`clustalw_aln`-outfile`{output}`-type`{type_seq}`-quiet`{"stderr" if verbose else ""}`-n_core`4', sep = "`")
+    run_command(command)
 
 def run_hmmbuild(input: str, output: str, verbose: bool = False, stdout_path: str = None):
     if not verbose and stdout_path == "":
@@ -42,13 +44,20 @@ def run_hmmbuild(input: str, output: str, verbose: bool = False, stdout_path: st
     message = ""
     if not verbose:
         message = f'`-o`{stdout_path}'
-    run_command(f'hmmbuild`{output}`{input}{message}', sep = "`")
+    
+    command = ["hmmbuild", str(output), str(input)]
+    # run_command(f'hmmbuild`{output}`{input}{message}', sep = "`")
+    run_command(command)
 
 def run_hmmemit(input: str, output: str):
-    run_command(f'hmmemit`-o`{output}`{input}', sep = "`")
+    command = ["hmmemit", "-o", str(output), str(input)]
+    # run_command(f'hmmemit`-o`{output}`{input}', sep = "`")
+    run_command(command)
 
 def concat_hmm(input_path: str, output_path: str):
-    run_command(f'cat`{input_path}*.hmm`>`{output_path}.hmm', sep = "`")
+    command = ["cat", f"{str(input_path)}*.hmm", ">", f"{str(output_path)}.hmm"]
+    # run_command(f'cat`{input_path}*.hmm`>`{output_path}.hmm', sep = "`")
+    run_command(command)
 
 def run_sra_download(accession: str, output_dir: str, split_files: bool, verbose: bool):
     command = ["fasterq-dump", accession, "--outdir", output_dir, "--threads", "4"]

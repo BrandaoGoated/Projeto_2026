@@ -21,8 +21,11 @@ def get_parser():
                         define what HMMs will be used for the search")
     parser.add_argument("-it", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
                         'protein', 'nucleic' or 'metagenome'. Defaults to 'protein'")
-    parser.add_argument("--input_type_db_const", help = "specifies the nature of the input sequences for the database construction between \
-                        'nucleic' and 'protein'. Defaults to 'protein'.", default = "protein")
+    parser.add_argument("--input_type_db_const",
+                        choices=["protein", "nucleic"],
+                        help = "specifies the nature of the input sequences for the database construction between \
+                        'nucleic' and 'protein'. Defaults to 'protein'.", 
+                        default = "protein")
     parser.add_argument("--consensus", default = False, action = "store_true", help = "call to build consensus sequences when building the database, \
                         in order to run KMA against raw metagenomes")
     parser.add_argument("-o", "--output", default = "MPARTY_results", help = "name for the output directory. Defaults to 'MPARTY_results'")

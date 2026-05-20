@@ -67,6 +67,8 @@ def setup_logging(verbose: bool = False, log_file: Path = None):
         handlers=handlers
     )
 
+logger = logging.getLogger(__name__)
+
 ### MAJOR WORKAROUND FOR NOW ###
 # get CLI arguments
 parser = get_parser()
@@ -718,19 +720,23 @@ def build_hmms_from_seqs(sequences: list,
 
     for file in os.listdir(PathManager.cdhit_path / "clusters"):
         try:
-            if args.input_type_db_const == "nucleic":
-                run_tcoffee(
-                            PathManager.cdhit_path / "clusters" / file, 
-                            PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"), 
-                            type_seq = "DNA" if args.input_type_db_const == "nucleic" else "PROTEIN",
-                            verbose=args.verbose
-                            )
-                
+            run_tcoffee(
+                PathManager.cdhit_path / "clusters" / file,
+                PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"),
+                type_seq="DNA" if args.input_type_db_const == "nucleic" else "PROTEIN",
+                verbose=args.verbose
+            )
+
         except Exception as exc:
-            # refactor to logging
+            logger.warning(
+                "T-COFFEE failed for file %s: %s",
+                file,
+                exc
+            )
+
             if args.verbose:
-                print(exc)
-                print(f'[WARNING] T-COFFEE for file {file} not working')
+                logger.exception("Full traceback")
+
             continue
 
     for msa in os.listdir(PathManager.tcoffee_path):
