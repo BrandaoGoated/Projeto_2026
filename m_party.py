@@ -6,7 +6,7 @@ M-PARTY - Mining Protein dAtasets for Target EnzYmes
 
 by José Freitas
 
-Dec 2024
+Dec 2026
 """
 
 import sys
@@ -43,7 +43,7 @@ from workflow.scripts.command_run import run_tcoffee, run_hmmbuild, run_hmmemit,
 from workflow.scripts.InterPro_retriever import get_IP_sequences
 from workflow.scripts.KEGG_retriever import get_kegg_genes
 from workflow.scripts.KMA_parser import run_KMA, kma_parser, get_hit_sequences
-from config.process_arguments import get_arguments, check_input_arguments, check_config, write_yaml_json
+from config.process_arguments import get_arguments, write_yaml_json, resolve_config, check_input_arguments_for_proceding
 import workflow.scripts.output_scripts.table_report_utils as table_report_utils
 import workflow.scripts.output_scripts.text_report_utils as text_report_utils
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
@@ -70,35 +70,18 @@ def setup_logging(verbose: bool = False, log_file: Path = None):
 logger = logging.getLogger(__name__)
 
 ### MAJOR WORKAROUND FOR NOW ###
-# get CLI arguments
-parser = get_parser()
-args = parser.parse_args()
-
-setup_logging(verbose=args.verbose, log_file=args.log_file)
+# # get CLI arguments
+# parser = get_parser()
+# args = parser.parse_args()
 
 
-def read_config(filename: str) -> tuple:
-    config_type = filename.split(".")[-1]
-    if config_type == "yaml":
-        with open(filename) as stream:
-            try:
-                config_file = yaml.safe_load(stream)
-                stream.close()
-            except yaml.YAMLError as exc:
-                print(exc)
-    elif config_type == "json":
-        with open(filename) as stream:
-            try:
-                config_file == json.load(stream)
-                stream.close()
-            except json.decoder.JSONDecodeError as exc:
-                print(exc)
-    else:
-        quit("Config file must be in .yaml or .json format! Get an example config file from config/ folder.")
-    return config_file, config_type
-
-
-def clean_sequence_ids(line: str, remove_excess_id: bool, ip: bool, kegg: bool, kma_res: bool) -> str:
+def clean_sequence_ids(
+        line: str,
+        remove_excess_id: bool, 
+        ip: bool, 
+        kegg: bool, 
+        kma_res: bool
+    ) -> str:
     """Function that receives a string and cleans it based on predefined patterns
 
     Args:
@@ -130,8 +113,15 @@ def clean_sequence_ids(line: str, remove_excess_id: bool, ip: bool, kegg: bool, 
                 return identi.replace(">", "")
 
 
-def parse_fasta(filename: str, remove_excess_id: bool = True, ip: bool = False, kegg: bool = False, kma_res: bool = False, verbose: bool = False) -> list:
-    """Given a FASTA file, returns the IDs from all sequences in that file.
+def parse_fasta(
+        filename: str, 
+        remove_excess_id: bool = True, 
+        ip: bool = False, 
+        kegg: bool = False, 
+        kma_res: bool = False, 
+        config: dict = None,
+    ) -> list:
+    """Given a FASTA file, returns the IDs from all sequences in that file. 
     If file not present, program will be quited and TypeError message raised.
 
     Args:
@@ -148,7 +138,7 @@ def parse_fasta(filename: str, remove_excess_id: bool = True, ip: bool = False, 
         list: A list containing IDs from all sequences
     """
     uniq_ids = []
-    if check_input_arguments(args, verbose=verbose,kma_res=kma_res) == False:
+    if check_input_arguments_for_proceding(config, kma_res=kma_res) == False:
         return uniq_ids
     else:
         try:
@@ -157,53 +147,58 @@ def parse_fasta(filename: str, remove_excess_id: bool = True, ip: bool = False, 
                     for line in handlefile:
                         if line.startswith(">"):
                             uniq_ids.append(clean_sequence_ids(line, remove_excess_id, ip, kegg, kma_res))
-                    if verbose:
+                    if config.get("verbpse"):
                         print(f'Input file {filename} detected and sequence IDs retrieved\n')
                         time.sleep(1)
                 except Exception as exc:
-                    print(exc)
+                    logger.warning(exc)
                     quit("File must be in FASTA format.")
         except TypeError:
             raise TypeError("Missing input file! Make sure -i option is filled")
         return uniq_ids
 
 
-def write_config(input_file: str, out_dir: str, to_output: bool  = False):
+def build_config_from_args(args: dict):
     """Given a input file, output directory, and a name to assign to the new config file, write that same config file
     accordingly to the given arguments
 
     Args:
-        input_file (str): Name for the input FASTA file
-        out_dir (str): Name for the output directory where result shall be directed
-        config_filename (str): Name to be given to the new config file
+        args (dict): dictionary spaning all arguments from argparse
     """
     # no input sequences expected
     if args.workflow == "database_construction" or args.workflow == "fetch" and args.input == None:
         seq_ids = []
     if args.input != None:
-        file_stats = os.stat(input_file)
+        file_stats = os.stat(args.input)
         if file_stats.st_size / (1024 * 1024) > 400:
             seq_ids = "too_big"
         else:
-            seq_ids = parse_fasta(input_file)
+            seq_ids = parse_fasta(args.input)
     if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.workflow != "fetch" and args.input == None:
-        out_dir = None
+        args.output = None
     else:
-        check_results_directory(out_dir)
-        arguments = get_arguments(args, seq_ids, out_dir)
+        check_results_directory(args.output)
+        arguments = get_arguments(args, seq_ids)
 
     try:
         Path(PathManager.config_path).mkdir(parents = True, exist_ok = True)
-        write_yaml_json(config_type="yaml", out_dir=out_dir, args_dict=arguments, to_output=to_output)
+        write_yaml_json("yaml", arguments)
     except Exception as exc:
-        raise Exception(exc)
+        raise ValueError(exc)
 
 
-def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: str):
+def table_report(
+        args: dict,
+        dataframe: pd.DataFrame, 
+        path: str, 
+        type_format: str, 
+        db_name: str
+    ):
     """Saves a table in a user specified format, with the processed and filtered information from the 
     hmmsearch execution with the HMMs against the query sequences.
 
     Args:
+        args (dict): list of arguments from argparse
         dataframe (pd.DataFrame): Dataframe with only the relevant information from hmmsearch execution 
         for all hmm from all threshold ranges.
         path (str): output path.
@@ -249,7 +244,14 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     table_report_utils.check_output(type=type_format, outdir=path, table_name=table_name, dataframe=df, ids_per_model=list_ids_permodel)
 
 
-def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_threshold: float, vali: bool = False, kma: bool = False):
+def text_report(
+        dataframe: pd.DataFrame, 
+        path: str, 
+        bit_threshold: float, 
+        eval_threshold: float, 
+        vali: bool = False, 
+        kma: bool = False
+    ):
     """Write the final report as .txt file, with a summary of the results from the annotation 
     performed with hmmsearch. Starts by calculating the number of in-built HMM profiles, and gives an insight of the 
     filtration thresholds.
@@ -317,7 +319,13 @@ def get_unique_hits(hit_ids_list: list) -> list:
     return unique_ids_list
 
 
-def get_aligned_seqs(config, hit_ids_list: list, path: str, inputed_seqs: str, kma_alignfile: str = None):
+def get_aligned_seqs(
+        config, 
+        hit_ids_list: list, 
+        path: str, 
+        inputed_seqs: str, 
+        kma_alignfile: str = None
+    ):
     """Writes an ouput Fasta file with the sequences from the input files that had a hit in hmmsearch 
     annotation against the hmm models.
 
@@ -329,20 +337,18 @@ def get_aligned_seqs(config, hit_ids_list: list, path: str, inputed_seqs: str, k
     # returns a list the sequences that hit against the models (only one entry)
     unique_ids = get_unique_hits(hit_ids_list)
 
-    if config["seqids"] == "too_big":
+    if config.get("seqids") == "too_big":
         check_id(inputed_seqs, path, unique_ids)
     
     else:
         with open(path + "aligned.fasta", "w") as wf:
-            if args.input_type == "metagenome":
+            if config.get("input_type") == "metagenome":
                 input_ids = parse_fasta(kma_alignfile, remove_excess_id = False, kma_res = True)
+                inp_seqs = kma_alignfile
             else:
                 input_ids = parse_fasta(inputed_seqs, remove_excess_id = False)
-            
-            if args.input_type == "metagenome":
-                inp_seqs = kma_alignfile
-            else: 
                 inp_seqs = inputed_seqs
+                
             with open(inp_seqs, "r") as rf:
                 lines = rf.readlines()
                 for x in unique_ids:
@@ -368,37 +374,39 @@ def get_aligned_seqs(config, hit_ids_list: list, path: str, inputed_seqs: str, k
         wf.close()
 
 
-def generate_output_files(dataframe: pd.DataFrame, 
-                          hit_ids_list: list, 
-                          inputed_seqs: str,
-                          config_file,
-                          bit_threshold: float = None, 
-                          eval_threshold: float = None, 
-                          kma: bool = False,
-                          kma_alignfile: str = None):
+def generate_output_files(
+        dataframe: pd.DataFrame, 
+        hit_ids_list: list, 
+        inputed_seqs: str,
+        config: dict,
+        bit_threshold: float = None, 
+        eval_threshold: float = None, 
+        kma: bool = False,
+        kma_alignfile: str = None
+    ):
     """Function that initializes the output files creation simultaneously, for now, only two files are generated:
     report and aligned sequences.
     Path will always be the output folder defined by the user when running tool in CLI, so no pat argument is required.
 
     Args:
+        args (dict): list of argumets from argparse
         dataframe (pd.DataFrame): Dataframe with only the relevant information from hmmsearch execution.
         hit_ids_list (list): list of Uniprot IDs that hit.
         inputed_seqs (str): name of the initial input file.
     """
-    out_folder = args.output + "/"
+    out_folder = config.get("output") + "/"
     if kma:
-        get_aligned_seqs(config_file, hit_ids_list, out_folder, inputed_seqs, kma_alignfile = kma_alignfile)
+        get_aligned_seqs(config, hit_ids_list, out_folder, inputed_seqs, kma_alignfile = kma_alignfile)
         dataframe.to_excel(f'{out_folder}report_table.xlsx', sheet_name = "Table_Report", index = 0)
     else:
-        table_report(dataframe, out_folder, args.output_type, args.hmm_db_name)
-        if args.report_text:
-            if args.hmm_validation:
+        table_report(config, dataframe, out_folder, config.get("output_type"), config.get("hmm_database_name"))
+        if config.get("report_text"):
+            if config.get("hmm_validation"):
                 text_report(dataframe, out_folder, bit_threshold, eval_threshold, vali = True)
             else:
                 text_report(dataframe, out_folder, bit_threshold, eval_threshold)
-        get_aligned_seqs(config_file, hit_ids_list, out_folder, inputed_seqs)
-    if args.display_config:
-        write_config(args.input, args.output, to_output=True)
+        get_aligned_seqs(config, hit_ids_list, out_folder, inputed_seqs)
+
 
 
 def check_db_existance(config) -> bool:
@@ -413,22 +421,22 @@ def check_db_existance(config) -> bool:
     Returns:
         bool: A boolean to continue or not the pipeline. If True, proceeds whatever comes next.
     """
-    if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{args.hmm_db_name}/')):
-        if args.overwrite:
+    if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{config.get("hmm_database_name")}/')):
+        if config.get("overwrite"):
             try:
-                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
-                if args.verbose:
-                    print(f"Deleted previously created files from {args.hmm_db_name}\n")
+                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], config.get("hmm_database_name"))
+                if config.get("verbose"):
+                    print(f"Deleted previously created files from {config.get("hmm_database_name")}\n")
             except Exception as exc:
                 print(exc)
             return True
         else:
-            overwrite = ask_for_overwrite(args.hmm_db_name, verbose=args.verbose)
+            overwrite = ask_for_overwrite(config.get("hmm_database_name"), verbose=config.get("verbose"))
             if overwrite:
                 try:
-                    dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
-                    if args.verbose:
-                        print(f"Deleted previously created files from {args.hmm_db_name}\n")
+                    dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], config.get("hmm_database_name"))
+                    if config.get("verbose"):
+                        print(f"Deleted previously created files from {config.get("hmm_database_name")}\n")
                 except Exception as exc:
                     raise FileNotFoundError(exc)
                 return True
@@ -457,27 +465,27 @@ def fetch_sra(config):
     
     if check_db_existance(config):
         
-        if args.split_files:
+        if config.get("split_files"):
             print("Samples will be splitted into forward and reverse reads files...\n")
 
-        if not args.use_cache:
+        if not config.get("use_cache"):
             print('Downloading directly to file. If taking to much time, turn on "--use_cache"...\n')
 
-            for accession in tqdm(args.sra):
+            for accession in tqdm(config.get("fetch_sra")):
                 run_sra_download(
-                                accession, 
-                                str(PathManager.sra_fastq_path),
-                                args.split_files,
-                                args.verbose
-                                )
+                    accession, 
+                    str(PathManager.sra_fastq_path),
+                    config.get("split_files"),
+                    config.get("verbose")
+                )
         else:
-            for accession in tqdm(args.sra):
+            for accession in tqdm(config.get("fetch_sra")):
                 download_sra_robust(
-                                accession, 
-                                str(PathManager.sra_fastq_path),
-                                args.split_files,
-                                args.verbose
-                                )
+                    accession, 
+                    str(PathManager.sra_fastq_path),
+                    config.get("split_files"),
+                    config.get("verbose")
+                )
             
     return True
 
@@ -498,74 +506,82 @@ def database_construction(config):
 
         time.sleep(2)
 
-        if args.expansion:
+        if config.get("expansion"):
             expand_base_sequences(config=config)
 
         else:
             # make necessary directories
             dir_generator_from_list(
-                                        [
-                                            PathManager.tcoffee_path, 
-                                            PathManager.cdhit_path / "clusters", 
-                                            PathManager.hmm_database_path, 
-                                            PathManager.sra_fastq_path
-                                        ]
-                                    )
+                [
+                    PathManager.tcoffee_path, 
+                    PathManager.cdhit_path / "clusters", 
+                    PathManager.hmm_database_path, 
+                    PathManager.sra_fastq_path
+                ]
+            )
             
-            if args.kegg:
+            if config.get("KEGG_ID"):
                 # if given ID is Kegg Orthology
-                if args.kegg[0].startswith("K"):
-                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
-                                                    type_seq = "nuc" if args.input_type_db_const == "nucleic" else "AA",
-                                                    ko = args.kegg, 
-                                                    verbose = args.verbose)
+                if config.get("KEGG_ID")[0].startswith("K"):
+                    kegg_sequences_path = get_kegg_genes(
+                        PathManager.fasta_type_dir / Path(config.get("KEGG_ID")[0]).with_suffix(".fasta"), 
+                        type_seq = "nuc" if config.get("input_type_db_const") == "nucleic" else "AA",
+                        ko = config.get("KEGG_ID"), 
+                        verbose = config.get("verbose")
+                    )
 
                 # If given ID is an E.C. number
                 else:
-                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
-                                                    type_seq = "nuc" if args.input_type_db_const == "nucleic" else "AA",
-                                                    ec_number = args.kegg, 
-                                                    verbose = args.verbose)
+                    kegg_sequences_path = get_kegg_genes(
+                        PathManager.fasta_type_dir / Path(config.get("KEGG_ID")[0]).with_suffix(".fasta"), 
+                        type_seq = "nuc" if config.get("input_type_db_const") == "nucleic" else "AA",
+                        ec_number = config.get("KEGG_ID"), 
+                        verbose = config.get("verbose")
+                    )
 
                 # Only build HMMs if input is protein or nucleic
-                if args.input_type != "metagenome":
-                    build_hmms_from_seqs(kegg_sequences)
+                if config.get("input_type") != "metagenome":
+                    build_hmms_from_seqs(config, kegg_sequences_path, "KEGG")
 
-            if args.interpro:
+            if config.get("InterPro_ID"):
                 # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
-                if args.input_type == "metagenome":
+                if config.get("input_type") == "metagenome":
                     raise ValueError("Metagenomic samples cannot be annalyzed with proteins as database")
 
                 # if given ID is a InterProt ID
-                elif args.interpro[0].startswith("IPR") and len(args.interpro) == 1:
-                    inp_seqs = get_IP_sequences(PathManager.fasta_type_dir / Path(args.interpro[0]).with_suffix(".fasta"), 
-                                                interpro_ID = args.interpro, 
-                                                reviewed = args.curated, 
-                                                verbose = args.verbose)
+                elif config.get("InterPro_ID")[0].startswith("IPR") and len(config.get("InterPro_ID")) == 1:
+                    inp_seqs_path = get_IP_sequences(
+                        PathManager.fasta_type_dir / Path(config.get("InterPro_ID")[0]).with_suffix(".fasta"), 
+                        interpro_ID = config.get("InterPro_ID"), 
+                        reviewed = config.get("curated"), 
+                        verbose = config.get("verbose")
+                    )
 
                 # if given ID is a list of proteins from InterProt
-                elif args.interpro[0].startswith("A"):
-                    inp_seqs = get_IP_sequences(PathManager.fasta_type_dir / Path(args.interpro[0]).with_suffix(".fasta"), 
-                                                protein = args.interpro, 
-                                                verbose = args.verbose)
+                elif config.get("InterPro_ID")[0].startswith("A"):
+                    inp_seqs_path = get_IP_sequences(
+                        PathManager.fasta_type_dir / Path(config.get("InterPro_ID")).with_suffix(".fasta"), 
+                        protein = config.get("InterPro_ID"), 
+                        verbose = config.get("verbose")
+                    )
 
                 # Start HMM construction
-                build_hmms_from_seqs(inp_seqs, "InP", ident_perc=0.8)
+                build_hmms_from_seqs(config, inp_seqs_path, "InP", ident_perc=0.8)
 
             # if a FASTA file with interest proteins/nucleiotides is given
-            if args.input_seqs_db_const:
+            if config.get("input_file_db_const"):
                 # Will not build HMMs if input is a metagenome
-                if args.input_type == "metagenome":
-                    shutil.copyfile(args.input_seqs_db_const, PathManager.fasta_type_dir)
+                if config.get("input_type") == "metagenome":
+                    shutil.copyfile(config.get("input_file_db_const"), PathManager.fasta_type_dir)
 
                 else:
                     # Start HMM construction
-                    shutil.copyfile(args.input_seqs_db_const, PathManager.fasta_type_dir / args.input_seqs_db_const.split("/")[-1].split(".")[0])
+                    shutil.copyfile(config.get("input_file_db_const"), PathManager.fasta_type_dir / config.get("input_file_db_const").split("/")[-1].split(".")[0])
                     build_hmms_from_seqs(
-                                        sequences=args.input_seqs_db_const,
-                                        type_seq=args.input_type_db_const, 
-                                        from_database=args.input_seqs_db_const.split("/")[-1].split(".")[0]
-                                        )
+                        config,
+                        sequences_path=config.get("input_file_db_const"),
+                        from_database=config.get("input_file_db_const").split("/")[-1].split(".")[0]
+                    )
 
             # remove files wrongly going to the root dir
             files = [f for f in os.listdir('.') if os.path.isfile(f)]
@@ -573,74 +589,74 @@ def database_construction(config):
                 if file.endswith(".dnd"):
                     delete_inter_files(file)
 
-    if args.hmm_validation:
+    if config.get("hmm_validation"):
         validate_hmm(config=config)
 
 
 def expand_base_sequences(config):
     Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
-    Path(f'resources/Data/Tables/{args.hmm_db_name}').mkdir(parents = True, exist_ok = True)
+    Path(f'resources/Data/Tables/{config.get("hmm_database_name")}').mkdir(parents = True, exist_ok = True)
     query_db = build_upi_query_db("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
 
     if config["alignment_method"] == "diamond":
         ### FASTA to DMND
         diamond_file = DIAMOND_parser.build_diamond_DB(query_db, "resources/Data/FASTA/", verbose = config["verbose"])  # ver a cena do overwrite para estes passos
-        Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
-        aligned_tsv = DIAMOND_parser.run_DIAMOND(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, args.threads)
+        Path(f'resources/Alignments/{config.get("hmm_database_name")}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
+        aligned_tsv = DIAMOND_parser.run_DIAMOND(config.get("input_file_db_const"), f'resources/Alignments/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, config.get("threads"))
         handle = DIAMOND_parser(aligned_tsv)
         dic_enzymes = DIAMOND_parser.DIAMOND_iter_per_sim(handle)
         if config["verbose"]:
             print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/DIAMOND_results_per_sim.tsv')
+        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{config.get("hmm_database_name")}/DIAMOND_results_per_sim.tsv')
 
     elif config["alignment_method"] == "upimapi":
         # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results', args.input_seqs_db_const, args.threads)
-        aligned_tsv = f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results/UPIMAPI_results.tsv'
+        aligned_tsv = f'resources/Alignments/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/upimapi_results/UPIMAPI_results.tsv'
         handle = UPIMAPI_parser.UPIMAPI_parser(aligned_tsv)
         dic_enzymes = UPIMAPI_parser.UPIMAPI_iter_per_sim(handle)
         if config["verbose"]:
             print(f'Saving IDs for the minimum cutoff values of {config["thresholds"]} percentages of similarity.\n')
-        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/UPIMAPI_results_per_sim.tsv')
+        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{config.get("hmm_database_name")}/UPIMAPI_results_per_sim.tsv')
 
     elif config["alignment_method"] == "blast":
         # blastdb_file = build_blast_DB(query_DB, "resources/Data/FASTA/DataBases/BLAST", args.input_type_db_const, verbose = config["verbose"])
-        Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results').mkdir(parents = True, exist_ok = True)
+        Path(f'resources/Alignments/{config.get("hmm_database_name")}/BLAST/BLAST_results').mkdir(parents = True, exist_ok = True)
         # run_BLAST(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv', blastdb_file, 8)
-        aligned_tsv = f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv'
+        aligned_tsv = f'resources/Alignments/{config.get("hmm_database_name")}/BLAST/BLAST_results/test.tsv'
         handle = BLAST_parser(aligned_tsv)
         dic_enzymes = BLAST_parser.BLAST_iter_per_sim(handle)
         if config["verbose"]:
             print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-        Path(f'resources/Data/Tables/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/BLAST_results_per_sim.tsv')
+        Path(f'resources/Data/Tables/{config.get("hmm_database_name")}/').mkdir(parents = True, exist_ok = True)
+        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{config.get("hmm_database_name")}/BLAST_results_per_sim.tsv')
 
     else:
         raise ValueError("--align_method flag only ranges from 'diamond', 'upimapi' or 'blast'. Chose one from the list.")
 
-    Path(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/').mkdir(parents = True, exist_ok = True)
-    Path(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/').mkdir(parents = True, exist_ok = True)
+    Path(f'resources/Data/FASTA/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/').mkdir(parents = True, exist_ok = True)
+    Path(f'resources/Data/Tables/{config.get("hmm_database_name")}/CDHIT_clusters/').mkdir(parents = True, exist_ok = True)
     for thresh in config["thresholds"]:
         if config["verbose"]:
             print(f'Retrieving sequences from {thresh} range\n')
         try:
-            get_fasta_sequences(f'resources/Data/Tables/{args.hmm_db_name}/{config["alignment_method"].upper()}_results_per_sim.tsv', f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta')
+            get_fasta_sequences(f'resources/Data/Tables/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}_results_per_sim.tsv', f'resources/Data/FASTA/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/{thresh}.fasta')
         except Exception as exc:
             print(exc)
             raise FileNotFoundError(f'resources/Data/Tables/{config["alignment_method"].upper()} not found.')
         ### run CDHIT
         if config["verbose"]:
             print(f'CDHIT run for {thresh} range\n')
-            Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
+            Path(f'resources/Data/FASTA/{config.get("hmm_database_name")}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
         try:
-            CDHIT_parser.run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta', 8)
-            handle = CDHIT_parser.cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta.clstr')
+            CDHIT_parser.run_CDHIT(f'resources/Data/FASTA/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/{thresh}.fasta', f'resources/Data/FASTA/{config.get("hmm_database_name")}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta', 8)
+            handle = CDHIT_parser.cdhit_parser(f'resources/Data/FASTA/{config.get("hmm_database_name")}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta.clstr')
             handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
-            save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv')
+            save_as_tsv(handle2, f'resources/Data/Tables/{config.get("hmm_database_name")}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv')
 
             if config["verbose"]:
                 print("Retrieving sequences divided by clusters from CDHIT\n")
-            fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv', 
-                                        f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
+            fasta_retriever_from_cdhit(f'resources/Data/Tables/{config.get("hmm_database_name")}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv', 
+                                        f'resources/Data/FASTA/{config.get("hmm_database_name")}/CDHIT/{thresh}')
         except Exception as exc:
             print(exc)
             if config["verbose"]:
@@ -661,7 +677,7 @@ def expand_base_sequences(config):
             config[thresh] = cluster
         newthresh = []
         for thresh in config["thresholds"]:
-            if thresh not in threshandclust.keys():
+            if thresh not in threshandclust:
                 continue
             else:
                 newthresh.append(thresh)
@@ -672,8 +688,8 @@ def expand_base_sequences(config):
         dump_file.close()
 
     snakemake.main(
-        f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile config/{args.config_file}'
-        f'{" --unlock" if args.unlock else ""}')
+        f'-s {config.get("snakefile")} --printshellcmds --cores {config["threads"]} --configfile config/{config.get("config_file")}'
+        f'{" --unlock" if config.get("unlock") else ""}')
 
     files = [f for f in os.listdir('.') if os.path.isfile(f)]
     for file in files:
@@ -684,80 +700,98 @@ def expand_base_sequences(config):
     time.sleep(2)
 
 
-def build_hmms_from_seqs(sequences: list, 
-                    type_seq: str = "AA", 
-                    from_database: str = "KEGG", 
-                    ident_perc: float = 0.7):
+def build_hmms_from_seqs(
+        config: dict,
+        sequences_path: str,
+        from_database: str,
+        ident_perc: float = 0.7,
+    ):
     """Sequence that condenses the code responsible for building the hmm from the sequences received from the user.
 
     Args:
-        sequences (list): a list of sequences. Required
-        type_seq (str, optional): the type of the given list of sequences. Defaults to "AA"
-        from_database (str, optional): The database the sequences come from. Defaults to "KEGG"
+        args (dict): list of arguments from argparse
+        sequences_path (str): a path or filename for the sequences to be used for hmm building. Can be from KEGG, InterPro or a custom sequence file
+        from_database (str): The database the sequences come from
         ident_perc (float, optional): The identity threshold to be used for CDHIT clustering. Defaults to 0.7
     """
     if from_database == "KEGG" or from_database == "InP":
-        filename = sequences.stem
+        filename = sequences_path.stem
     else:
-        filename = sequences.split("/")[-1].split(".")[0]
+        filename = sequences_path.split("/")[-1].split(".")[0]
     
+    # generate cluster file
     CDHIT_parser.run_CDHIT(
-                            sequences, 
-                            PathManager.cdhit_path / Path(filename).with_suffix(".fasta"), 
-                            args.threads, 
-                            identperc=ident_perc,
-                            type_seq=type_seq
-                        )
+        sequences_path, 
+        PathManager.cdhit_path / Path(filename).with_suffix(".fasta"), 
+        config.get("threads"), 
+        identperc=ident_perc,
+        type_seq = "AA" if config.get("input_type_db_const") == "protein" else "NUC", 
+    )
+
+    # get cluster info -> {cluster_X: [list of IDs]}
     seqs = CDHIT_parser.cdhit_parser(
-                                    PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), 
-                                    kegg = True if from_database == "KEGG" else False,
-                                    ip = True if from_database == "InP" else False
-                                    )
+                PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), 
+                kegg = True if from_database == "KEGG" else False,
+                ip = True if from_database == "InP" else False
+            )
 
-    input_ids = parse_fasta(sequences, kegg = True if from_database == "KEGG" else False, verbose = args.verbose)
+    # get FASTA IDs from the sequences file that will be used to build the HMMs
+    input_ids = parse_fasta(
+        sequences_path, 
+        kegg = True if from_database == "KEGG" else False, 
+        config = config
+    )
+    
+    # generate FASTAS with each cluster sequence
+    CDHIT_parser.get_clustered_sequences(
+        seqs, 
+        PathManager.cdhit_path / "clusters", 
+        sequences_path, 
+        input_ids, 
+        from_database
+    )
 
-    CDHIT_parser.get_clustered_sequences(seqs, PathManager.cdhit_path / "clusters", sequences, input_ids, from_database)
-
+    # Run multiple sequence alignement with T-COFFEE
     for file in os.listdir(PathManager.cdhit_path / "clusters"):
         try:
             run_tcoffee(
                 PathManager.cdhit_path / "clusters" / file,
                 PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"),
-                type_seq="DNA" if args.input_type_db_const == "nucleic" else "PROTEIN",
-                verbose=args.verbose
+                type_seq = "PROTEIN" if config.get("input_type_db_const") == "protein" else "DNA",
+                verbose = config.get("verbose")
             )
 
         except Exception as exc:
-            logger.warning(
-                "T-COFFEE failed for file %s: %s",
-                file,
-                exc
-            )
-
-            if args.verbose:
+            logger.warning("T-COFFEE failed for file %s: %s", file, exc)
+            if config.get("verbose"):
                 logger.exception("Full traceback")
 
             continue
 
+    # Build HMMs with msa files
     for msa in os.listdir(PathManager.tcoffee_path):
         run_hmmbuild(
-                    PathManager.tcoffee_path / msa, 
-                    PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"), 
-                    # args.verbose,
-                    True,
-                    PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".txt"), 
-                    )
+            PathManager.tcoffee_path / msa, 
+            PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"), 
+            # args.verbose,
+            True,
+            PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".txt"), 
+        )
 
-        if args.consensus:
+        if config.get("consensus"):
             run_hmmemit(
-                        PathManager.hmm_database_path /Path(msa.split(".")[0]).with_suffix(".hmm"), 
-                        PathManager.consensus_path / Path(msa.split(".")[0]).with_suffix(".fasta")
-                        )
+                PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"), 
+                PathManager.consensus_path / Path(msa.split(".")[0]).with_suffix(".fasta")
+            )
+
             # get consensus sequence
-            concat_fasta(PathManager.consensus_path, PathManager.consensus_path / "consensus")
+            concat_fasta(
+                PathManager.consensus_path, 
+                PathManager.consensus_path / "consensus"
+            )
 
     # concat hmm models to a single file
-    concat_code_hmm(args.hmm_db_name, from_database + "_model")
+    concat_code_hmm(config.get("hmm_database_name"), from_database + "_model")
 
 
 def validate_hmm(config):
@@ -783,7 +817,7 @@ def annotation(config):
     print("Annotation workflow started...\n")
     time.sleep(2)
 
-    if args.hmm_validation:
+    if config.get("hmm_validation"):
 
         if not os.path.exists(PathManager.validated_hmm_dir):
             validate_hmm(config=config)
@@ -792,80 +826,87 @@ def annotation(config):
             time.sleep(1)
 
     # if a metagenome is given, runs KMA
-    if args.input_type == "metagenome":
+    if config.get("input_type") == "metagenome":
+        # paths are hardcoded for convinience
         dir_generator_from_list([PathManager.tables_path / 'kma_hits', PathManager.databases_path / 'kma_db' / 'KEGG_cons'])
         paired_workflow, second_input = False, None
-        if len(args.input) == 2:
+        if len(config.get("input")) == 2:
             paired_workflow = True
-            second_input = args.input[1]
-        if args.consensus:
+            second_input = config.get("input")[1]
+        if config.get("consensus"):
             kma_out = run_KMA(
-                                PathManager.consensus_path / Path("consensus").with_suffix(".fasta"), 
-                                PathManager.databases_path / 'kma_db',
-                                args.input, 
-                                PathManager.tables_path / 'kma_hits' / args.input.split(".")[0], 
-                                threads = args.threads,
-                                paired_end=paired_workflow,
-                                second_input=second_input
-                            )
-            
+                PathManager.consensus_path / Path("consensus").with_suffix(".fasta"), 
+                PathManager.databases_path / 'kma_db',
+                config.get("input"), 
+                PathManager.tables_path / 'kma_hits' / config.get("input").split(".")[0], 
+                threads = config.get("threads"),
+                paired_end=paired_workflow,
+                second_input=second_input
+            )
+
         else:
             for file in os.listdir(PathManager.fasta_type_dir):
                 if os.path.isfile(os.path.join(PathManager.fasta_type_dir, file)):
                     kma_out = run_KMA(
-                                        PathManager.fasta_type_dir / file, 
-                                        PathManager.databases_path / 'kma_db',
-                                        args.input, 
-                                        PathManager.tables_path / 'kma_hits' / Path(args.input.split("/")[-1].split(".")[0]), 
-                                        threads = args.threads,
-                                        paired_end=paired_workflow,
-                                        second_input=second_input
-                                    )
+                        PathManager.fasta_type_dir / file, 
+                        PathManager.databases_path / 'kma_db',
+                        config.get("input"), 
+                        PathManager.tables_path / 'kma_hits' / Path(config.get("input").split("/")[-1].split(".")[0]), 
+                        threads = config.get("threads"),
+                        paired_end=paired_workflow,
+                        second_input=second_input
+                    )
                     
         df = kma_parser(kma_out.with_suffix(".res"), )
         hit_seqs = get_hit_sequences(df, to_list = True)
         generate_output_files(
-                            df, 
-                            hit_seqs, 
-                            kma_out, 
-                            config, 
-                            kma = True, 
-                            kma_alignfile = kma_out.with_suffix(".fsa")
-                            )
+            df, 
+            hit_seqs, 
+            kma_out, 
+            config, 
+            kma = True, 
+            kma_alignfile = kma_out.with_suffix(".fsa")
+        )
 
     # if input file is not a metagenome
     else:
-        if args.hmm_validation:
+        if config.get("hmm_validation"):
             for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
                 hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
-                run_hmmsearch(args.input, 
-                            hmm_file,
-                            PathManager.hmmsearch_results_path / hmmserach_out_file,
-                            verbose = args.verbose, 
-                            eval = 0.00001,
-                            out_type = args.hmms_output_type)
+                run_hmmsearch(
+                    config.get("input"), 
+                    hmm_file,
+                    PathManager.hmmsearch_results_path / hmmserach_out_file,
+                    verbose = config.get("verbose"), 
+                    eval = 0.00001,
+                    out_type = config.get("hmmsearch_out_type")
+                )
         else:
         # if models have been concatenated
-            if args.concat_hmm_models:
+            if config.get("concat_models"):
                 print(PathManager.hmm_database_path)
                 for hmm_file in file_generator(PathManager.hmm_database_path / "concat_model", full_path = True):
                     hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
                     if os.path.exists(PathManager.hmmsearch_results_path / hmmserach_out_file):
                         os.remove(PathManager.hmmsearch_results_path / hmmserach_out_file)
-                        run_hmmsearch(args.input, 
-                                    hmm_file, 
-                                    PathManager.hmmsearch_results_path / hmmserach_out_file, 
-                                    verbose = args.verbose, 
-                                    eval = 0.00001,
-                                    out_type = args.hmms_output_type)
+                        run_hmmsearch(
+                            config.get("input"), 
+                            hmm_file,
+                            PathManager.hmmsearch_results_path / hmmserach_out_file,
+                            verbose = config.get("verbose"), 
+                            eval = 0.00001,
+                            out_type = config.get("hmmsearch_out_type")
+                        )
                     else:
                         PathManager.hmmsearch_results_path.mkdir(parents = True, exist_ok = True)
-                        run_hmmsearch(args.input, 
-                                    hmm_file, 
-                                    PathManager.hmmsearch_results_path / hmmserach_out_file, 
-                                    verbose = args.verbose, 
-                                    eval = 0.00001,
-                                    out_type = args.hmms_output_type)
+                        run_hmmsearch(
+                            config.get("input"), 
+                            hmm_file,
+                            PathManager.hmmsearch_results_path / hmmserach_out_file,
+                            verbose = config.get("verbose"), 
+                            eval = 0.00001,
+                            out_type = config.get("hmmsearch_out_type")
+                        )
             else:
                 p = os.listdir(PathManager.hmm_database_path)
                 for thresh in p:
@@ -873,15 +914,17 @@ def annotation(config):
                     Path(path).mkdir(parents = True, exist_ok = True)
                     hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
                     for hmm_file in file_generator(path, full_path = True):
-                        run_hmmsearch(args.input, 
-                                    hmm_file, 
-                                    path / hmmserach_out_file, 
-                                    verbose = args.verbose, 
-                                    eval = 0.00001,
-                                    out_type = args.hmms_output_type)
+                        run_hmmsearch(
+                            config.get("input"), 
+                            hmm_file, 
+                            path / hmmserach_out_file, 
+                            verbose = config.get("verbose"), 
+                            eval = 0.00001,
+                            out_type = config.get("hmmsearch_out_type")
+                        )
                     BLAST_parser.concat_hmmsearch_results(path, PathManager.hmmsearch_results_path)
 
-        if args.expansion:
+        if config.get("expansion"):
             lista_dataframes = dict.fromkeys(config["thresholds"])
             for file in file_generator(PathManager.hmmsearch_results_path):
                 thresh = file.split("_")[-1].split(".")[0]
@@ -895,30 +938,39 @@ def annotation(config):
 
         else:
             for file in file_generator(PathManager.hmmsearch_results_path):
-                if args.input.split("/")[-1].split(".")[0] in file:
+                if config.get("input").split("/")[-1].split(".")[0] in file:
                     dataframe = read_hmmsearch_table(PathManager.hmmsearch_results_path / file)
             rel_df = relevant_info_df(dataframe)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
             hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
         
         # outout files are always generated
-        generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+        generate_output_files(quality_df, hited_seqs, config.get("input"), config, bs_thresh, eval_thresh)
+
+
+def clean(args: dict):
+    paths = ["Data/FASTA/", "Alignments/", "Data/HMMs/"]
+    for path in paths:
+        path = f'resources/{path}{args.hmm_db_name}/'
+        if Path(path).exists():
+            shutil.rmtree(path)
+            if args.verbose:
+                logger.info(f'Deleted path {path}')
 
 
 def main_pipeline(args):
-    ### Clean database ###
+    ### Resolve config ###
+    config = resolve_config(args)
+    # optionally save it for reproducibility
+    if args.display_config or not args.config_file:
+        write_yaml_json("yaml", args)
+
+    ### Clean database and exit ###
     if args.clean:
-        paths = ["Data/FASTA/", "Alignments/", "Data/HMMs/"]
-        for path in paths:
-            path = f'resources/{path}{args.hmm_db_name}/'
-            if Path(path).exists():
-                shutil.rmtree(path)
-                if args.verbose:
-                    print(f'Deleted path {path}')
+        clean(args)
         return
 
     done = False
-
     if args.verbose and args.input is not None:
         def animate():
             for c in itertools.cycle(['|', '/', '-', '\\']):
@@ -933,12 +985,6 @@ def main_pipeline(args):
 
         t = threading.Thread(target=animate)
         t.start()
-
-    if args.config_file is not None:
-        config, config_format = read_config(args.config_file)
-    else:
-        write_config(args.input, args.output)
-        config, config_format = read_config(f"{PathManager.config_path}/config.yaml")
 
     done = True
     time.sleep(1)
@@ -968,8 +1014,6 @@ def main_pipeline(args):
         database_construction(config=config)
         annotation(config)
 
-    elif args.workflow not in  ["annotation", "database_construction", "both", "fetch"]:
-        raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction', 'both' or 'fetch'. Chose one from the list.")
 
 
     et = time.time()
@@ -989,17 +1033,18 @@ def main_pipeline(args):
 
 
 def main():
-    # # get CLI arguments
-    # parser = get_parser()
-    # args = parser.parse_args()
-
-    process_arguments(args)
+    # get CLI arguments
+    parser = get_parser()
+    args = parser.parse_args()
 
     # check arguments
-    check_config(args=args)
-
+    process_arguments(args)
+    
     # initialize paths
     declare_fixed_paths(args)
+
+    # setup logger
+    setup_logging(verbose=args.verbose, log_file=args.log_file)
 
     # start pipeline
     main_pipeline(args)

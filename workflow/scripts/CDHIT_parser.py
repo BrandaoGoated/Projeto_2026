@@ -13,7 +13,7 @@ def run_CDHIT(input: str, output: str, threads: int, type_seq: str = "AA", ident
         identperc (float, optional): Minimum identity between sequences to be clustered. Defaults to 0.7
     """
     if type_seq == "AA":
-        command = ["cd-hit", "-i", input, "-o", str(output), "-c", identperc, "-n", "5", "-M", "16000", "-d", "0", "-T", str(threads)]
+        command = ["cd-hit", "-i", input, "-o", str(output), "-c", str(identperc), "-n", "5", "-M", "16000", "-d", "0", "-T", str(threads)]
         # run_command(f'cd-hit`-i`{input}`-o`{output}`-c`{identperc}`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
         run_command(command)
     else:
@@ -61,6 +61,7 @@ def cdhit_parser(txtfile: str, ip: bool = False, kegg: bool = False) -> dict:
             seqs_by_cluster[cluster].append(clean)
     return seqs_by_cluster
 
+
 def counter(clstr_lst: dict, remove_single: bool = True, remove_duplicates: bool = False, tsv_ready: bool = False) -> dict:
     """Functions receives a dictionary with keys as the number of the cluster and UniProt sequences IDs as values and returns another dictionary
     with the number of sequences per cluster, with the option of removing single sequence clusters.
@@ -94,25 +95,25 @@ def counter(clstr_lst: dict, remove_single: bool = True, remove_duplicates: bool
                 set_number_seqs_by_cluster[k] = list(set(v))
     return set_number_seqs_by_cluster
 
-def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, input_IDs_list: list, db: str):
-    """Wirtes an ouput FASTA file with the sequences from the input files that were clustered toghether 
-    with CD-HIT.
+
+def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, input_ids_list: list, db: str):
+    """Writes an ouput FASTA file with the sequences from the input files that were clustered together with CD-HIT.
 
     Args:
         clust_dict (dict): Dictionary from cdhit_parser function with number of cluster as key and every seq ID
         belonging to each cluster as value.
         path (str): Ouput path.
         inputed_seqs (str): Path for the initial input file.
-        input_IDs_list (list): list of seq IDs from the input file (to facilitate).
+        input_ids_list (list): list of seq IDs from the input file (to facilitate).
+        db (str): db name to write the cluster files
     """
     # returns list of IDs from inputed FASTA sequences (entire ID)
-    
     with open(inputed_seqs, "r") as rf:
         lines = rf.readlines()
         for k, v in clust_dict.items():
             with open(f'{path}/{db}_cluster_{k}.fasta', "w") as wf:
                 for x in v:
-                    if x in input_IDs_list:
+                    if x in input_ids_list:
                         # try:
                             iterador = iter(lines)
                             linha = next(iterador)

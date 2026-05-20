@@ -78,9 +78,6 @@ def get_parser():
 
 
 def process_arguments(args):
-    if args.workflow not in ["fetch", "database_construction", "annotation", "both"]:
-        raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction', 'both' or 'fetch'. Chose one from the list.")
-
     if args.workflow == "fetch" and args.sra == "":
         raise ValueError("Provide the SRA IDs to download the respective FASTQ files")
     if args.workflow != "fetch" and args.use_cache:
@@ -94,6 +91,20 @@ def process_arguments(args):
             raise ValueError("Input only accepts two files: (forward reverse)")
     if args.clean and args.hmm_db_name is None:
         raise ValueError("You need to provide the name of the folder to be deleted")
+    if args.config_file != None and (args.input != None or args.kegg != None or args.interpro != None):
+        raise ValueError("config file cannot be given with other arguments")
+    elif args.hmm_db_name is None:
+        raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+    elif args.workflow == "database_construction" and args.input_seqs_db_const is None and args.kegg is None and args.interpro is None:
+        raise TypeError("Missing input sequences to build HMM database")
+    if args.interpro is not None:
+        # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
+        if args.input_type == "metagenome":
+            raise ValueError("Metagenomic samples cannot be annalyzed with proteins as database")
+        elif args.interpro[0].startswith("IPR") and len(args.interpro) > 1:
+            raise ValueError("Give only 1 InterPro ID (IPR******)")
+        elif not args.interpro[0].startswith("IPR") and not args.interpro[0].startswith("A"):
+            raise ValueError("Must input and IPR ID or protein ID from InterPro starting with 'A'")
 
 
 def check_dependencies():

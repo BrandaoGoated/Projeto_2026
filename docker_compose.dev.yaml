@@ -9,5 +9,6 @@ services:
       - ./m_party.py:/app/m_party.py
       - ./workflow/:/app/workflow
       - ./resources/:/app/resources
+      - ./config/:/app/config
     stdin_open: true
     tty: true

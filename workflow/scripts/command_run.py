@@ -46,6 +46,9 @@ def run_hmmbuild(input: str, output: str, verbose: bool = False, stdout_path: st
         message = f'`-o`{stdout_path}'
     
     command = ["hmmbuild", str(output), str(input)]
+    if message != "":
+        command.append(message)
+        
     # run_command(f'hmmbuild`{output}`{input}{message}', sep = "`")
     run_command(command)
 
