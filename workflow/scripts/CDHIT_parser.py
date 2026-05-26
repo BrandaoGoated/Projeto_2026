@@ -13,11 +13,11 @@ def run_CDHIT(input: str, output: str, threads: int, type_seq: str = "AA", ident
         identperc (float, optional): Minimum identity between sequences to be clustered. Defaults to 0.7
     """
     if type_seq == "AA":
-        command = ["cd-hit", "-i", input, "-o", str(output), "-c", str(identperc), "-n", "5", "-M", "16000", "-d", "0", "-T", str(threads)]
+        command = ["cd-hit", "-i", str(input), "-o", str(output), "-c", str(identperc), "-n", "5", "-M", "16000", "-d", "0", "-T", str(threads)]
         # run_command(f'cd-hit`-i`{input}`-o`{output}`-c`{identperc}`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
         run_command(command)
     else:
-        command = ["cd-hit", "-i", input, "-o", str(output), "-c", "0.8", "-n", "5", "-M", "16000", "-d", "0", "-T", str(threads)]
+        command = ["cd-hit", "-i", str(input), "-o", str(output), "-c", "0.8", "-n", "5", "-M", "16000", "-d", "0", "-T", str(threads)]
         # run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.8`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
         run_command(command)
 

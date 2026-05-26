@@ -7,7 +7,6 @@ import shutil
 from workflow.scripts.command_run import run_command
 import os
 import time
-# from workflow.scripts.hmm_vali import delete_inter_files
 from pathlib import Path
 import fileinput
 from tqdm import tqdm
@@ -416,7 +415,7 @@ def get_soup(url: str, status: int = 200):
 	except Exception as err:
 		print(f'Other error occurred: {err}')
 	soup = BeautifulSoup(response.text, "html.parser")
-	return soup
+	return soup, response.status_code
 
 
 def retry(tries: int, url: str):

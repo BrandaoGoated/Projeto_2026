@@ -5,7 +5,10 @@ from tqdm import tqdm
 import math
 import time
 from workflow.scripts.mparty_util import get_soup, retry
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 def find_between(string: str, first: str, last: str):
     """Function that, given a string, returns the content between two points.
@@ -30,15 +33,15 @@ def get_kegg_genes(filepath: str, type_seq: str = "AA", ec_number: str = None, k
     """Function that will connect to KEGG and find information based on what it's asked for, in distinct databases
 
     Args:
-        filepath (str): 
-        type_seq (str, optional): _description_. Defaults to "AA".
-        ec_number (str, optional): _description_. Defaults to None.
-        ko (str, optional): _description_. Defaults to None.
-        verbose (bool, optional): _description_. Defaults to False.
+        filepath (str): name for the file were the found sequences will be writen to
+        type_seq (str, optional): type of the sequence to be extracted. Defaults to "AA".
+        ec_number (str, optional): EC number provided by the CLI. Defaults to None.
+        ko (str, optional): KO number provided by the CLI. Defaults to None.
+        verbose (bool, optional): If to . Defaults to False.
 
     Raises:
-        ValueError: _description_
-        ValueError: _description_
+        ValueError: if no KO or EC number is provided
+        ValueError: if both KO and EC number is provided
 
     Returns:
         _type_: _description_
@@ -55,7 +58,9 @@ def get_kegg_genes(filepath: str, type_seq: str = "AA", ec_number: str = None, k
             if verbose:
                 print(f'Downloading {k} orthology genes')
         for link in ko_urlist:
-            get_kegg_kosequences(filepath, link, korec = "ko", type_seq = type_seq, verbose=verbose)
+            success = True
+            success = get_kegg_kosequences(filepath, link, korec = "ko", type_seq = type_seq, verbose=verbose)
+
     elif ec_number:
         ec_urlist = []
         for ec in ec_number:
@@ -63,8 +68,13 @@ def get_kegg_genes(filepath: str, type_seq: str = "AA", ec_number: str = None, k
             if verbose:
                 print(f'Downloading {ec} genes')
         for link in ec_urlist:
-            get_kegg_kosequences(filepath, link, korec = "ec", type_seq = type_seq, verbose=verbose)
-    return filepath
+            success = True
+            success = get_kegg_kosequences(filepath, link, korec = "ec", type_seq = type_seq, verbose=verbose)
+    
+    if not success:
+        return False
+    else:
+        return filepath
 
 
 def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: str = "AA", verbose: bool = False, tries: int = 5):
@@ -78,7 +88,13 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
         verbose (bool, optional): Decides to print more information. Defaults to False.
         tries (int, optional): number of tries to connect to KEGG. Defaults to 5.
     """
-    soup = get_soup(url)
+    errors = False
+    success = True
+    soup, code = get_soup(url)
+    if code != 200:
+        logger.error(f"Request to KEGG for the {url} URL was not successful. Either the provided ID was not found or the API might be down. Try again later.")
+        errors = True
+
     genes = []
     start_line = False
     end_line = False
@@ -95,16 +111,15 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
                     genes.extend(gene_line.split(';'))
                 else:
                     end_line = True
-        # case of EC numbers with no acess to api genes
-        # print(genes)
+
+        # case of EC numbers with no access to api genes
         if genes == []:
             if verbose:
                 print(f'Sequences from {url} not found. Trying in RefGene')
             wf.close()
             try:
-                get_kegg_refgene_sequences(filepath, url, korec, type_seq = type_seq, verbose = verbose)
-            except Exception as exc:
-                # print(exc)
+                success = get_kegg_refgene_sequences(filepath, url, korec, type_seq = type_seq, verbose = verbose)
+            except Exception:
                 print(f"[WARNING] Sequence for {url} not found")
         else:
             genes2 = []
@@ -126,11 +141,15 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
                 wf.write(response.text)
             if verbose:
                 print(f'Checking the existance of other genes for {url.split("/")[-1]} in RefSeq')
-            get_kegg_refgene_sequences(filepath, url, korec, type_seq, verbose)
+            try:
+                success = get_kegg_refgene_sequences(filepath, url, korec, type_seq, verbose)
+            except Exception:
+                print(f"[WARNING] Sequence for {url} not found")
+
         wf.close()
 
 
-def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_seq: str = "AA", verbose: bool = False, tries: int = 5):
+def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_seq: str = "AA", verbose: bool = False, tries: int = 5) -> bool:
     """Function called to find more genes in the same run in other databases from KEGG
 
     Args:
@@ -145,66 +164,82 @@ def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_
     if korec == "ec":
         ec = url.split("/")[-1]
         url = f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+ec:{ec}"
-        soup = get_soup(url)
-        try:
-            number_hits = soup.find(string = re.compile("Hits")) 
-            number_pages = math.ceil(int(re.findall("[0-9]{2,}", number_hits)[0]) / 1000)
-        except:
-            return
-        if number_pages < 2:
-            url_list.append(url)
+
+        soup, code = get_soup(url)
+        if code != 200:
+            logger.error(f"Request to RefSeq for the {url} URL was not successful. Either the provided ID was not found or the API might be down. Try again later.")
+
         else:
-            for i in range(1, number_pages + 1):
-                url_list.append(f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+-p+{i}+ec:{ec}")
+            try:
+                number_hits = soup.find(string = re.compile("Hits")) 
+                number_pages = math.ceil(int(re.findall("[0-9]{2,}", number_hits)[0]) / 1000)
+            except Exception:
+                return
+            if number_pages < 2:
+                url_list.append(url)
+            else:
+                for i in range(1, number_pages + 1):
+                    url_list.append(f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+-p+{i}+ec:{ec}")
+
     else:
         ko = url.split("/")[-1]
         url = f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+ko:{ko}"
-        soup = get_soup(url)
-        try:
-            number_hits = soup.find(string = re.compile("Hits"))
-            number_pages = math.ceil(int(re.findall("[0-9]{2,}", number_hits)[0]) / 1000)
-        except:
-            return
-        if number_pages < 2:
-            url_list.append(url)
+        soup, code = get_soup(url)
+
+        if code != 200:
+            logger.error(f"Request to RefSeq for the {url} URL was not successful. Either the provided ID was not found or the API might be down. Try again later.")
+        
         else:
-            for i in range(1, number_pages + 1):
-                url_list.append(f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+-p+{i}+ko:{ko}")
-    with open(filepath, "a") as wf:
-        not_found = 0
-        for url2 in url_list:
-            soup = get_soup(url2)
-            # Extract the gene IDs from the HTML
-            gene_ids = [a.text for a in soup.find_all("a")]
-            # Use the KEGG API to get the sequence information for a given list of gene IDs
-            fasta = ""
-            for gene_id in tqdm(gene_ids, desc = f'Downloading genes pag.{url_list.index(url2) + 1}/{len(url_list)} in RefGene', position = 0, leave = True, unit = "sequence", disable=True if not verbose else False):
-                if gene_id.startswith("RG"):
-                    if type_seq == "AA":
-                        url3 = f"https://www.genome.jp/entry/-f+-n+a+{gene_id}"
-                    else:
-                        url3 = f"https://www.genome.jp/entry/-f+-n+n+{gene_id}"
-                    response = retry(tries, url3)
-                    if response.status_code == 403:
-                        if verbose:
-                            print("Waiting for server decongestion\n")
-                        time.sleep(181)
-                        response = requests.get(url3)
-                    text = response.text
-                    # Add the sequence information to the fasta string
-                    try:
-                        start = text.index("-->&gt;") + len("-->&gt;")
-                        end = text.index("</pre>", start)
-                        fasta += ">" + text[start:end]
-                    except Exception as e:
-                        # print(e)
-                        # print(f"[WARNING] Sequence for {gene_id} not found")
-                        not_found += 1
-                        continue
-            wf.write(fasta)
-        if verbose:
-            print(f'{not_found} IDs not found')
-        wf.close()
+            try:
+                number_hits = soup.find(string = re.compile("Hits"))
+                number_pages = math.ceil(int(re.findall("[0-9]{2,}", number_hits)[0]) / 1000)
+            except Exception:
+                return
+            if number_pages < 2:
+                url_list.append(url)
+            else:
+                for i in range(1, number_pages + 1):
+                    url_list.append(f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+-p+{i}+ko:{ko}")
+
+    if len(url_list) > 0:
+        with open(filepath, "a") as wf:
+            not_found = 0
+            for url2 in url_list:
+                soup, code = get_soup(url2)
+                # Extract the gene IDs from the HTML
+                gene_ids = [a.text for a in soup.find_all("a")]
+                # Use the KEGG API to get the sequence information for a given list of gene IDs
+                fasta = ""
+                for gene_id in tqdm(gene_ids, desc = f'Downloading genes pag.{url_list.index(url2) + 1}/{len(url_list)} in RefGene', position = 0, leave = True, unit = "sequence", disable=True if not verbose else False):
+                    if gene_id.startswith("RG"):
+                        if type_seq == "AA":
+                            url3 = f"https://www.genome.jp/entry/-f+-n+a+{gene_id}"
+                        else:
+                            url3 = f"https://www.genome.jp/entry/-f+-n+n+{gene_id}"
+                        response = retry(tries, url3)
+                        if response.status_code == 403:
+                            if verbose:
+                                print("Waiting for server decongestion\n")
+                            time.sleep(181)
+                            response = requests.get(url3)
+                        text = response.text
+                        # Add the sequence information to the fasta string
+                        try:
+                            start = text.index("-->&gt;") + len("-->&gt;")
+                            end = text.index("</pre>", start)
+                            fasta += ">" + text[start:end]
+                        except Exception:
+                            # print(f"[WARNING] Sequence for {gene_id} not found")
+                            not_found += 1
+                            continue
+                wf.write(fasta)
+            if verbose:
+                print(f'{not_found} IDs not found')
+            wf.close()
+
+            return True
+    else:
+        return False
 
 # ec_number = ["3.1.1.101", "1.14.12.15", "1.18.1.-", "1.3.1.53"]
 # ko = ["K18251", "K18252", "K18253", "K18254"]

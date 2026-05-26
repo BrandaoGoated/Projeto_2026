@@ -6,7 +6,7 @@ from tqdm import tqdm
 from workflow.scripts.mparty_util import get_soup
 
 
-def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = False, protein: list = [], verbose: bool = False) -> str:
+def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = False, protein: list = [], verbose: bool = False) -> str | bool:
     """Function that will retrieve the protein sequences from InterPro if a compatible ID is given.
 
     Args:
@@ -21,7 +21,7 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = Fa
         ValueError: second ValueError is raised in case neither parameter is given
 
     Returns:
-        str: the path for the output file
+        str or bool: the path for the output file or False in case no sequences are found
     """
     if interpro_ID == None and protein == []:
         raise ValueError("Either an InterPro ID or a list with protein IDs must be given")
@@ -34,6 +34,7 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = Fa
                 url = f'https://www.ebi.ac.uk/interpro/api/protein/UniProt/{p}'
                 response = requests.get(url)
                 if response.status_code == 408:
+                    # wait a minute
                     time.sleep(61)
                 response.raise_for_status()
                 json_resp = response.json()
@@ -43,10 +44,11 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = Fa
                 print(f'Other error occurred: {err}')
             try:
                 name = f'>{p}|{json_resp["metadata"]["name"]}|{json_resp["metadata"]["source_organism"]["scientificName"]}'
-            except:
+            except Exception:
                 name = p
             seq = json_resp["metadata"]["sequence"]
             list_prot[name] = seq
+
     elif interpro_ID != None:
         try:
             url = f'https://www.ebi.ac.uk/interpro/api/protein/UniProt/entry/InterPro/{interpro_ID[0]}/?extra_fields=sequence&page_size=100'
@@ -69,6 +71,7 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = Fa
         while url:
             response = requests.get(url)
             if response.status_code == 408:
+                # wait a minute
                 time.sleep(61)
                 continue
             response.raise_for_status()
@@ -93,21 +96,24 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = Fa
             url = json_resp["next"]
             pbar.update(1)
         pbar.close()
-    with open(filepath, "w") as wf:
-        for k, v in list_prot.items():
-            wf.write(k + "\n")
-            fasta_seq = ""
-            for i in range(0, len(v), 60):
-                # print(i)
-                if i + 60 > len(v):
-                    fasta_seq += v[i:] + "\n"
-                    # print(fasta_seq)
-                    break
-                fasta_seq += v[i:i+60] + "\n"
-            # print(fasta_seq)
-            wf.write(fasta_seq)
-    wf.close()
-    return filepath
+    
+    if list_prot != {}:
+        with open(filepath, "w") as wf:
+            for k, v in list_prot.items():
+                wf.write(k + "\n")
+                fasta_seq = ""
+                for i in range(0, len(v), 60):
+                    if i + 60 > len(v):
+                        fasta_seq += v[i:] + "\n"
+                        break
+                    fasta_seq += v[i:i+60] + "\n"
+
+                wf.write(fasta_seq)
+        wf.close()
+        return filepath
+    
+    else:
+        return False
 
 
 # get_gene_IDS(interpro_ID = "ola", protein = ["A0A000", "A0A001", "A0A002"])
