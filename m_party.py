@@ -382,6 +382,9 @@ def database_construction(config):
                         ec_number = config.get("KEGG_ID"), 
                         verbose = config.get("verbose")
                     )
+                
+                if not kegg_sequences_path:
+                    quit(f'No sequences were found for {config.get("KEGG_ID")}. Execution halted.')
 
                 # Only build HMMs if input is protein or nucleic
                 if config.get("input_type") != "metagenome":
@@ -408,14 +411,20 @@ def database_construction(config):
                         protein = config.get("InterPro_ID"), 
                         verbose = config.get("verbose")
                     )
+                
+                if not kegg_sequences_path:
+                    quit(f'No sequences were found for {config.get("InterPro_ID")}. Execution halted.')
 
                 # Start HMM construction
                 build_hmms_from_seqs(config, inp_seqs_path, "InP", ident_perc=0.8)
 
             # if a FASTA file with interest proteins/nucleiotides is given
             if config.get("input_file_db_const"):
+
+                # check if it is indeed a FASTA file
+
+
                 # Will not build HMMs if input is a metagenome
-                
                 if config.get("input_type") == "metagenome":
                     # instead, copy the file to the same output FASTA dir
                     shutil.copyfile(config.get("input_file_db_const"), PathManager.fasta_type_dir)
@@ -440,72 +449,70 @@ def database_construction(config):
 
 
 def expand_base_sequences(config):
-    Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
-    Path(f'resources/Data/Tables/{config.get("hmm_database_name")}').mkdir(parents = True, exist_ok = True)
-    query_db = build_upi_query_db("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
+    dir_generator_from_list([PathManager.databases_path, PathManager.tables_path])
+    query_db = build_upi_query_db(PathManager.tables_path, config = config, verbose = config["verbose"])
 
-    if config["alignment_method"] == "diamond":
+    if config.get("alignment_method") == "diamond":
         ### FASTA to DMND
-        diamond_file = DIAMOND_parser.build_diamond_DB(query_db, "resources/Data/FASTA/", verbose = config["verbose"])  # ver a cena do overwrite para estes passos
-        Path(f'resources/Alignments/{config.get("hmm_database_name")}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
-        aligned_tsv = DIAMOND_parser.run_DIAMOND(config.get("input_file_db_const"), f'resources/Alignments/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, config.get("threads"))
+        diamond_file = DIAMOND_parser.build_diamond_DB(query_db, PathManager.fasta_type_dir, verbose = config["verbose"])
+        Path(PathManager.alignments_path / "BLAST" / "diamond_output").mkdir(parents = True, exist_ok = True)
+        aligned_tsv = DIAMOND_parser.run_DIAMOND(config.get("input_file_db_const"), PathManager.alignments_path / f'{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, config.get("threads"))
         handle = DIAMOND_parser(aligned_tsv)
         dic_enzymes = DIAMOND_parser.DIAMOND_iter_per_sim(handle)
-        if config["verbose"]:
+        if config.get("verbose"):
             print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{config.get("hmm_database_name")}/DIAMOND_results_per_sim.tsv')
+        save_as_tsv(dic_enzymes, PathManager.tables_path / "DIAMOND_results_per_sim.tsv")
 
-    elif config["alignment_method"] == "upimapi":
+    elif config.get("alignment_method") == "upimapi":
         # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results', args.input_seqs_db_const, args.threads)
-        aligned_tsv = f'resources/Alignments/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/upimapi_results/UPIMAPI_results.tsv'
+        aligned_tsv = PathManager.alignments_path / f'{config.get("alignment_method").upper()}/upimapi_results/UPIMAPI_results.tsv'
         handle = UPIMAPI_parser.UPIMAPI_parser(aligned_tsv)
         dic_enzymes = UPIMAPI_parser.UPIMAPI_iter_per_sim(handle)
-        if config["verbose"]:
-            print(f'Saving IDs for the minimum cutoff values of {config["thresholds"]} percentages of similarity.\n')
-        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{config.get("hmm_database_name")}/UPIMAPI_results_per_sim.tsv')
+        if config.get("verbose"):
+            print(f'Saving IDs for the minimum cutoff values of {config.get("thresholds")} percentages of similarity.\n')
+        save_as_tsv(dic_enzymes,  PathManager.tables_path / "UPIMAPI_results_per_sim.tsv")
 
-    elif config["alignment_method"] == "blast":
+    elif config.get("alignment_method") == "blast":
         # blastdb_file = build_blast_DB(query_DB, "resources/Data/FASTA/DataBases/BLAST", args.input_type_db_const, verbose = config["verbose"])
-        Path(f'resources/Alignments/{config.get("hmm_database_name")}/BLAST/BLAST_results').mkdir(parents = True, exist_ok = True)
+        Path(PathManager.alignments_path / "BLAST" / "BLAST_results").mkdir(parents = True, exist_ok = True)
         # run_BLAST(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv', blastdb_file, 8)
-        aligned_tsv = f'resources/Alignments/{config.get("hmm_database_name")}/BLAST/BLAST_results/test.tsv'
+        aligned_tsv = PathManager.alignments_path / "BLAST" / "BLAST_results" / "test.tsv"
         handle = BLAST_parser(aligned_tsv)
         dic_enzymes = BLAST_parser.BLAST_iter_per_sim(handle)
-        if config["verbose"]:
-            print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-        Path(f'resources/Data/Tables/{config.get("hmm_database_name")}/').mkdir(parents = True, exist_ok = True)
-        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{config.get("hmm_database_name")}/BLAST_results_per_sim.tsv')
+        if config.get("verbose"):
+            print(f'Saving IDs from the ranges of {config.get("thresholds")} percentages of similarity.\n')
+        Path(PathManager.tables_path).mkdir(parents = True, exist_ok = True)
+        save_as_tsv(dic_enzymes,  PathManager.tables_path / "BLAST_results_per_sim.tsv")
 
     else:
         raise ValueError("--align_method flag only ranges from 'diamond', 'upimapi' or 'blast'. Chose one from the list.")
 
-    Path(f'resources/Data/FASTA/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/').mkdir(parents = True, exist_ok = True)
-    Path(f'resources/Data/Tables/{config.get("hmm_database_name")}/CDHIT_clusters/').mkdir(parents = True, exist_ok = True)
-    for thresh in config["thresholds"]:
-        if config["verbose"]:
+    Path(PathManager.fasta_type_dir / f"{config.get("alignment_method").upper()}/").mkdir(parents = True, exist_ok = True)
+    Path(PathManager.tables_path / "CDHIT_clusters").mkdir(parents = True, exist_ok = True)
+    for thresh in config.get("thresholds"):
+        if config.get("verbose"):
             print(f'Retrieving sequences from {thresh} range\n')
         try:
-            get_fasta_sequences(f'resources/Data/Tables/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}_results_per_sim.tsv', f'resources/Data/FASTA/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/{thresh}.fasta')
-        except Exception as exc:
-            print(exc)
-            raise FileNotFoundError(f'resources/Data/Tables/{config["alignment_method"].upper()} not found.')
+            get_fasta_sequences(PathManager.tables_path / f"{config.get("alignment_method").upper()}_results_per_sim.tsv", PathManager.fasta_type_dir / f"{config.get("alignment_method").upper()}/{thresh}.fasta")
+        except Exception:
+            raise FileNotFoundError(f'{str(PathManager.tables_path)}/{config["alignment_method"].upper()} not found.')
+        
         ### run CDHIT
-        if config["verbose"]:
+        if config.get("verbose"):
             print(f'CDHIT run for {thresh} range\n')
-            Path(f'resources/Data/FASTA/{config.get("hmm_database_name")}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
+            Path(PathManager.cdhit_path / f"{thresh}/").mkdir(parents = True, exist_ok = True)
         try:
-            CDHIT_parser.run_CDHIT(f'resources/Data/FASTA/{config.get("hmm_database_name")}/{config["alignment_method"].upper()}/{thresh}.fasta', f'resources/Data/FASTA/{config.get("hmm_database_name")}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta', 8)
-            handle = CDHIT_parser.cdhit_parser(f'resources/Data/FASTA/{config.get("hmm_database_name")}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta.clstr')
+            CDHIT_parser.run_CDHIT(PathManager.fasta_type_dir / f"{config.get("alignment_method").upper()}/{thresh}.fasta", PathManager.cdhit_path / f"cd-hit_after_{config.get("alignment_method")}_{thresh}.fasta", 8)
+            handle = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / f"cd-hit_after_{config.get("alignment_method")}_{thresh}.fasta.clstr2")
             handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
-            save_as_tsv(handle2, f'resources/Data/Tables/{config.get("hmm_database_name")}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv')
+            save_as_tsv(handle2, PathManager.tables_path / "CDHIT_clusters" / f"cdhit_clusters_{thresh}_after{config.get("alignment_method")}.tsv")
 
-            if config["verbose"]:
+            if config.get("verbose"):
                 print("Retrieving sequences divided by clusters from CDHIT\n")
-            fasta_retriever_from_cdhit(f'resources/Data/Tables/{config.get("hmm_database_name")}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv', 
-                                        f'resources/Data/FASTA/{config.get("hmm_database_name")}/CDHIT/{thresh}')
-        except Exception as exc:
-            print(exc)
-            if config["verbose"]:
+            fasta_retriever_from_cdhit(PathManager.tables_path / "CDHIT_clusters" / f"cdhit_clusters_{thresh}_after{config.get("alignment_method")}.tsv", 
+                                        PathManager.cdhit_path / f"{thresh}")
+        except Exception:
+            if config.get("verbose"):
                 print(f'[WARNING] Minimum cutoff of {thresh} of similarity not detected.\n')
             time.sleep(2)
             continue
@@ -534,7 +541,7 @@ def expand_base_sequences(config):
         dump_file.close()
 
     snakemake.main(
-        f'-s {config.get("snakefile")} --printshellcmds --cores {config["threads"]} --configfile config/{config.get("config_file")}'
+        f'-s {config.get("snakefile")} --printshellcmds --cores {config.get("threads")} --configfile config/{config.get("config_file")}'
         f'{" --unlock" if config.get("unlock") else ""}')
 
     files = [f for f in os.listdir('.') if os.path.isfile(f)]

@@ -5,6 +5,10 @@ from config.process_arguments import check_input_arguments_for_proceding
 
 logger = logging.getLogger(__name__)
 
+def check_fasta() -> bool:
+    return True
+
+
 def clean_sequence_ids(
         line: str,
         remove_excess_id: bool, 
