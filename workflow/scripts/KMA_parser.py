@@ -1,8 +1,9 @@
 from workflow.scripts.command_run import run_command
 import pandas as pd
+from pathlib import Path
 
 
-def run_KMA(input_db: str, output_db: str, meta_input: str, meta_out: str, threads: int, paired_end: bool = False, second_input: str = None) -> str:
+def run_KMA(input_db: Path, output_db: Path, meta_input: Path, meta_out: str, threads: int, paired_end: bool = False, second_input: str = None) -> str:
     """Runs KMA with in the command line and returns the output file
 
     Args:
@@ -27,21 +28,22 @@ def run_KMA(input_db: str, output_db: str, meta_input: str, meta_out: str, threa
     # Build KMA index
     print("Building KMA index")
     # run_command(f'kma`index`-i`{input_db}`-o`{output_db}', sep = "`")
-    command = ["kma", "index", "-i", input_db, "-o", output_db]
+    command = ["kma", "index", "-i", str(input_db), "-o", str(output_db)]
     run_command(command)
 
     # Run KMA
     if not paired_end:
         # run_command(f'kma`-i`{meta_input}`-o`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
-        command = ["kma", "-i", meta_input, "-o", meta_out, "-t_db", output_db, "-t", threads, "-1t1", "-mem_mode", "-ef"]
+        command = ["kma", "-i", str(meta_input), "-o", str(meta_out), "-t_db", str(output_db), "-t", str(threads), "-1t1", "-mem_mode", "-ef"]
 
     else:
         # run_command(f'kma`-i`{meta_input}`{second_input}`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
-        command = ["kma", "-i", meta_input, second_input, "-o", meta_out, "-t_db", output_db, "-t", threads, "-1t1", "-mem_mode", "-ef"]
+        command = ["kma", "-i", str(meta_input), second_input, "-o", meta_out, "-t_db", output_db, "-t", threads, "-1t1", "-mem_mode", "-ef"]
     
     run_command(command)
         
     return meta_out
+
 
 def kma_parser(input_file: str, identity_threshold: int = 80, coverage_threshold: int = 60) -> pd.DataFrame:
     """Process the output of the KMA run for the desired information. Will dismiss entries with thresholds superior to the ones provided.
@@ -58,6 +60,7 @@ def kma_parser(input_file: str, identity_threshold: int = 80, coverage_threshold
     df1 = df.loc[(pd.to_numeric(df["Template_Identity"]) >= identity_threshold) & 
                  (pd.to_numeric(df["Template_Coverage"]) >= coverage_threshold)]
     return df1[["#Template", "Template_Identity", "Template_Coverage", "q_value", "p_value"]]
+
 
 def get_hit_sequences(dataframe: pd.DataFrame, to_list: bool = False) -> list:
     """Given a Dataframe with info from KMA run, return a list of the hit IDs

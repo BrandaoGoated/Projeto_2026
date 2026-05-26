@@ -9,6 +9,8 @@ def get_arguments(args: dict, sequences: list) -> dict:
     """Converts the arguments given by the CLI to a dictionary"""
     arguments = {
         "seqids": sequences,
+        "input": args.input,
+        "input_number": 0 if args.input == None else len(args.input),
         "database": args.database,
         "input_file": None if sequences == [] else args.input.split("/")[-1],
         "input_file_db_const": args.input_seqs_db_const,
@@ -99,7 +101,7 @@ def build_config_from_args(args) -> dict:
 
 
 def resolve_config(args):
-    """Single entry point: returns a config dict from either a provided file or CLI args."""
+    """Entry point for config file: returns a config dict from either a provided file or CLI args."""
     if args.config_file is not None:
         config, _ = read_config(args.config_file)
     else:

@@ -97,4 +97,6 @@ def download_sra_robust(accession: str, output_dir: str, split_files: bool, verb
     logger.info(f"Done: {accession}")
 
 def concat_fasta(input_path: str, output_path: str):
-    run_command(f'cat`{input_path}*.fasta`>`{output_path}.fasta', sep = "`")
+    command = ["cat", f'{input_path}*.fasta', ">", f'{output_path}.fasta']
+    # run_command(f'cat`{input_path}*.fasta`>`{output_path}.fasta', sep = "`")
+    run_command(command)

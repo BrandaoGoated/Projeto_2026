@@ -19,8 +19,10 @@ def get_parser():
     parser.add_argument("--hmm_db_name", help = "name to be assigned to the hmm database to be created. Its recomended to give a name that \
                         that describes the family or other characteristic of the given sequences. Be carefull as what name to use, as this will \
                         define what HMMs will be used for the search")
-    parser.add_argument("-it", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
-                        'protein', 'nucleic' or 'metagenome'. Defaults to 'protein'")
+    parser.add_argument("-it", "--input_type",
+                        choices=["protein", "nucleic", "metagenome"],
+                        default = "protein", 
+                        help = "specifies the nature of the sequences in the input file between 'protein', 'nucleic' or 'metagenome'. Defaults to 'protein'")
     parser.add_argument("--input_type_db_const",
                         choices=["protein", "nucleic"],
                         help = "specifies the nature of the input sequences for the database construction between \
@@ -50,10 +52,14 @@ def get_parser():
     parser.add_argument("--curated", default = False, action = "store_true", help = "call to only retrieve reviewed sequences from InterPro")
     parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to max number of available logical CPUs.",
                         default = os.cpu_count())
-    parser.add_argument("--align_method", default = "upimapi", help = "chose the alignment method for the initial sequences database expansion, between\
-                        'diamond', 'blast' and 'upimapi'. Defaults to 'upimapi'")
-    parser.add_argument("--aligner", default = "tcoffee", help = "chose the aligner program to perform the multiple sequence alignment for the models\
-                        between 'tcoffee' and 'muscle'. Defaults to 'tcoffee'.")
+    parser.add_argument("--align_method",
+                        choices=["diamond", "blast", "upimapi"],
+                        default = "upimapi", 
+                        help = "chose the alignment method for the initial sequences database expansion, between 'diamond', 'blast' and 'upimapi'. Defaults to 'upimapi'")
+    parser.add_argument("--aligner", 
+                        choices=["tcoffee", "muscle"],
+                        default = "tcoffee", 
+                        help = "chose the aligner program to perform the multiple sequence alignment for the models between 'tcoffee' and 'muscle'. Defaults to 'tcoffee'.")
     parser.add_argument("-hm", "--hmm_models", type=str, help = "path to a directory containing HMM models previously created by the user. By default, M-PARTY\
                         does not have any in-built HMMs, so the user always needs to either create a database with the database construction workflow or \
                         inputing them this way.")
@@ -65,13 +71,13 @@ def get_parser():
                     help='defines the workflow to follow. Defaults to "annotation"')
     parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
                         advanced users.", default = None)
-    parser.add_argument("--log_file", type=Path, default=None, help="Optional path to save logs.")
-    parser.add_argument("--clean", default = False, action = "store_true", help = "could be required after running tool multiple times and files inside \
+    parser.add_argument("--log_file", type=str, default=None, help="Optional path to save logs. If not provided, as it is not by default, will \
+                        not produce logs, only small verbose messages in the terminal.")
+    parser.add_argument("--clean", default = False, action = "store_true", help = "Could be required after running tool multiple times and files inside \
                         databases start to mix up. Defaults to False.")
     parser.add_argument("--overwrite", action = "store_true", default = False, help = "Call to overwrite inputted files. Defaults to False.")
     parser.add_argument("--verbose", action = "store_true", default = False, help = "Call to enable debug logging and increse messaging. Defaults to False.")
-    parser.add_argument("--display_config", default = False, action = "store_true", 
-                        help = "declare to output the written config file together with results. Useful in case of debug.")
+    parser.add_argument("--display_config", default = False, action = "store_true", help = "declare to output the written config file together with results. Useful in case of debug.")
     parser.add_argument("-v", "--version", action = "version", version = "M-PARTY {}".format(version))
 
     return parser

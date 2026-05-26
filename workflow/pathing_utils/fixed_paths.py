@@ -6,6 +6,7 @@ class PathManager:
     system_path = Path(sys.path[0])
     snakefile_path = None
     config_path = None
+    log_path = None
     hmm_database_path = None
     hmmsearch_results_path = None
     tcoffee_path = None
@@ -20,6 +21,7 @@ class PathManager:
 def declare_fixed_paths(args: dict):
     PathManager.snakefile_path = PathManager.system_path / "workflow" / "Snakefile"
     PathManager.config_path = PathManager.system_path / "config"
+    PathManager.log_path = PathManager.system_path / "logs"
     PathManager.fasta_type_dir = PathManager.system_path / "resources" / "Data" / "FASTA" / args.hmm_db_name
     PathManager.hmm_database_path = PathManager.system_path / "resources" / "Data" / "HMMs" / args.hmm_db_name
     PathManager.hmmsearch_results_path = PathManager.system_path / 'results' / args.hmm_db_name / "HMMsearch_results"

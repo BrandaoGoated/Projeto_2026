@@ -1,6 +1,5 @@
 from glob import glob
 import sys
-from itertools import product
 from clint.textui import progress
 import pandas as pd
 import requests
@@ -8,13 +7,43 @@ import shutil
 from workflow.scripts.command_run import run_command
 import os
 import time
-from workflow.scripts.hmm_vali import delete_inter_files
+# from workflow.scripts.hmm_vali import delete_inter_files
 from pathlib import Path
 import fileinput
 from tqdm import tqdm
 from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
 from workflow.pathing_utils.fixed_paths import PathManager
+from workflow.pathing_utils.path_generator import dir_remover
+
+
+# def build_config_from_args(args: dict):
+#     """Given a input file, output directory, and a name to assign to the new config file, write that same config file
+#     accordingly to the given arguments
+
+#     Args:
+#         args (dict): dictionary spaning all arguments from argparse
+#     """
+#     # no input sequences expected
+#     if args.workflow == "database_construction" or args.workflow == "fetch" and args.input == None:
+#         seq_ids = []
+#     if args.input != None:
+#         file_stats = os.stat(args.input)
+#         if file_stats.st_size / (1024 * 1024) > 400:
+#             seq_ids = "too_big"
+#         else:
+#             seq_ids = parse_fasta(args.input)
+#     if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.workflow != "fetch" and args.input == None:
+#         args.output = None
+#     else:
+#         check_results_directory(args.output)
+#         arguments = get_arguments(args, seq_ids)
+
+#     try:
+#         Path(PathManager.config_path).mkdir(parents = True, exist_ok = True)
+#         write_yaml_json("yaml", arguments)
+#     except Exception as exc:
+#         raise ValueError(exc)
 
 
 def get_clusters(tsv_file: str) -> list:
@@ -411,3 +440,45 @@ def retry(tries: int, url: str):
 			i += 1
 			time.sleep(2)
 	return response		
+
+
+def check_db_existance(config) -> bool:
+    """Checks if the given argument for the hmm database already exists. If so asks for overwrite
+
+    Args:
+        config (str): config file
+
+    Raises:
+        FileNotFoundError: If foldres are not found, raise the corresponding error
+
+    Returns:
+        bool: A boolean to continue or not the pipeline. If True, proceeds whatever comes next.
+    """
+    if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{config.get("hmm_database_name")}/')):
+        if config.get("overwrite"):
+            try:
+                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], config.get("hmm_database_name"))
+                if config.get("verbose"):
+                    print(f"Deleted previously created files from {config.get("hmm_database_name")}\n")
+            except Exception as exc:
+                print(exc)
+            return True
+        else:
+            overwrite = ask_for_overwrite(config.get("hmm_database_name"), verbose=config.get("verbose"))
+            if overwrite:
+                try:
+                    dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], config.get("hmm_database_name"))
+                    if config.get("verbose"):
+                        print(f"Deleted previously created files from {config.get("hmm_database_name")}\n")
+                except Exception as exc:
+                    raise FileNotFoundError(exc)
+                return True
+            else:
+                print("Database for that name is already present. If you wish to create a new database,\neither overwrite the existant or give a different HMM database name.")
+                
+                if config["workflow"] == "database_construction":
+                    quit("M-PARTY has finished execution.")
+                else:
+                    return False
+    else:
+        return True

@@ -19,8 +19,6 @@ import os
 from pathlib import Path
 import time
 import yaml
-import json
-import re
 import pandas as pd
 from tqdm import tqdm 
 import snakemake
@@ -36,21 +34,22 @@ import workflow.scripts.UPIMAPI_parser as UPIMAPI_parser
 from workflow.scripts.seq_download import get_fasta_sequences
 from workflow.scripts.CDHIT_seq_download import fasta_retriever_from_cdhit
 import workflow.scripts.CDHIT_parser as CDHIT_parser
-from workflow.scripts.mparty_util import build_upi_query_db, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id, ask_for_overwrite
+from workflow.scripts.mparty_util import build_upi_query_db, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id, check_db_existance
 import workflow.scripts.BLAST_parser as BLAST_parser
 import workflow.scripts.DIAMOND_parser as DIAMOND_parser
 from workflow.scripts.command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta, run_sra_download, download_sra_robust
 from workflow.scripts.InterPro_retriever import get_IP_sequences
 from workflow.scripts.KEGG_retriever import get_kegg_genes
 from workflow.scripts.KMA_parser import run_KMA, kma_parser, get_hit_sequences
-from config.process_arguments import get_arguments, write_yaml_json, resolve_config, check_input_arguments_for_proceding
+from config.process_arguments import get_arguments, write_yaml_json, resolve_config
 import workflow.scripts.output_scripts.table_report_utils as table_report_utils
 import workflow.scripts.output_scripts.text_report_utils as text_report_utils
+from workflow.scripts.FASTA_processing import parse_fasta, clean_sequence_ids
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
-from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover, check_results_directory, file_generator
+from workflow.pathing_utils.path_generator import dir_generator_from_list, check_results_directory, file_generator
 
 
-def setup_logging(verbose: bool = False, log_file: Path = None):
+def setup_logging(verbose: bool = False, log_file: Path | None = None, db_name: str | None= None):
     level = logging.DEBUG if verbose else logging.INFO
 
     handlers = [
@@ -58,7 +57,12 @@ def setup_logging(verbose: bool = False, log_file: Path = None):
     ]
 
     if log_file:
-        handlers.append(logging.FileHandler(log_file))
+        Path(PathManager.log_path).mkdir(parents = True, exist_ok = True)
+        if db_name:
+            out_path = PathManager.log_path / f'{log_file}_{db_name}'
+        else:
+            out_path = PathManager.log_path / log_file
+        handlers.append(logging.FileHandler(out_path))
 
     logging.basicConfig(
         level=level,
@@ -68,123 +72,6 @@ def setup_logging(verbose: bool = False, log_file: Path = None):
     )
 
 logger = logging.getLogger(__name__)
-
-### MAJOR WORKAROUND FOR NOW ###
-# # get CLI arguments
-# parser = get_parser()
-# args = parser.parse_args()
-
-
-def clean_sequence_ids(
-        line: str,
-        remove_excess_id: bool, 
-        ip: bool, 
-        kegg: bool, 
-        kma_res: bool
-    ) -> str:
-    """Function that receives a string and cleans it based on predefined patterns
-
-    Args:
-        line (str): line string
-        remove_excess_id (bool): Decide wether to remove the excess part of UniProt IDs
-        ip (bool): Set to True if sequences from filename were retrieved from InterPro, which has a specific nomenclature
-        for the FASTA entries
-        kegg (bool): Set to True if sequences from filenames were retrieved from KEGG, which has a specific nomenclature
-        for the FASTA entries.
-        kma_res (bool): Set to True if this function is set to run for the processing of KMA results
-
-    Returns:
-        str: Cleaned string
-    """
-    if kegg:
-        return re.search(r">(\S+)", line).group(1)
-    elif ip:
-        return re.search(r">([^|]+)\|", line).group(1)
-    elif kma_res:
-        return line.replace(">", "").strip()
-    else:
-        if not remove_excess_id:
-            return line.split(" ")[0][1:]
-        else:
-            try:
-                return re.search(r"\|(.*)\|", line).group(1)
-            except Exception:
-                identi = line.split(" ")[0]
-                return identi.replace(">", "")
-
-
-def parse_fasta(
-        filename: str, 
-        remove_excess_id: bool = True, 
-        ip: bool = False, 
-        kegg: bool = False, 
-        kma_res: bool = False, 
-        config: dict = None,
-    ) -> list:
-    """Given a FASTA file, returns the IDs from all sequences in that file. 
-    If file not present, program will be quited and TypeError message raised.
-
-    Args:
-        filename (str): Name of FASTA file.
-        remove_excess_id (bool, optional): Decide wether to remove the excess part of UniProt IDs. Defaults to True.
-        ip (bool, optional): Set to True if sequences from filename were retrieved from InterPro, which has a specific nomenclature
-        for the FASTA entries.
-        kegg (bool, optional): Set to True if sequences from filenames were retrieved from KEGG, which has a specific nomenclature
-        for the FASTA entries.
-        kma_res (bool, optional): Set to True if this function is set to run for the processing of KMA results. Defaults to False.
-        verbose (bool, optional): Set to True to print aditional messages of wath is happening. Defaults to False.
-
-    Returns:
-        list: A list containing IDs from all sequences
-    """
-    uniq_ids = []
-    if check_input_arguments_for_proceding(config, kma_res=kma_res) == False:
-        return uniq_ids
-    else:
-        try:
-            with open(filename, "r") as handlefile:
-                try:
-                    for line in handlefile:
-                        if line.startswith(">"):
-                            uniq_ids.append(clean_sequence_ids(line, remove_excess_id, ip, kegg, kma_res))
-                    if config.get("verbpse"):
-                        print(f'Input file {filename} detected and sequence IDs retrieved\n')
-                        time.sleep(1)
-                except Exception as exc:
-                    logger.warning(exc)
-                    quit("File must be in FASTA format.")
-        except TypeError:
-            raise TypeError("Missing input file! Make sure -i option is filled")
-        return uniq_ids
-
-
-def build_config_from_args(args: dict):
-    """Given a input file, output directory, and a name to assign to the new config file, write that same config file
-    accordingly to the given arguments
-
-    Args:
-        args (dict): dictionary spaning all arguments from argparse
-    """
-    # no input sequences expected
-    if args.workflow == "database_construction" or args.workflow == "fetch" and args.input == None:
-        seq_ids = []
-    if args.input != None:
-        file_stats = os.stat(args.input)
-        if file_stats.st_size / (1024 * 1024) > 400:
-            seq_ids = "too_big"
-        else:
-            seq_ids = parse_fasta(args.input)
-    if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.workflow != "fetch" and args.input == None:
-        args.output = None
-    else:
-        check_results_directory(args.output)
-        arguments = get_arguments(args, seq_ids)
-
-    try:
-        Path(PathManager.config_path).mkdir(parents = True, exist_ok = True)
-        write_yaml_json("yaml", arguments)
-    except Exception as exc:
-        raise ValueError(exc)
 
 
 def table_report(
@@ -408,49 +295,6 @@ def generate_output_files(
         get_aligned_seqs(config, hit_ids_list, out_folder, inputed_seqs)
 
 
-
-def check_db_existance(config) -> bool:
-    """Checks if the given argument for the hmm database already exists. If so asks for overwrite
-
-    Args:
-        config (str): config file
-
-    Raises:
-        FileNotFoundError: If foldres are not found, raise the corresponding error
-
-    Returns:
-        bool: A boolean to continue or not the pipeline. If True, proceeds whatever comes next.
-    """
-    if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{config.get("hmm_database_name")}/')):
-        if config.get("overwrite"):
-            try:
-                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], config.get("hmm_database_name"))
-                if config.get("verbose"):
-                    print(f"Deleted previously created files from {config.get("hmm_database_name")}\n")
-            except Exception as exc:
-                print(exc)
-            return True
-        else:
-            overwrite = ask_for_overwrite(config.get("hmm_database_name"), verbose=config.get("verbose"))
-            if overwrite:
-                try:
-                    dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], config.get("hmm_database_name"))
-                    if config.get("verbose"):
-                        print(f"Deleted previously created files from {config.get("hmm_database_name")}\n")
-                except Exception as exc:
-                    raise FileNotFoundError(exc)
-                return True
-            else:
-                print("Database for that name is already present. If you wish to create a new database,\neither overwrite the existant or give a different HMM database name.")
-                
-                if config["workflow"] == "database_construction":
-                    quit("M-PARTY has finished execution.")
-                else:
-                    return False
-    else:
-        return True
-
-
 def fetch_sra(config):
     """Function to fetch SRA files from Sequence Reads Archive
 
@@ -571,7 +415,9 @@ def database_construction(config):
             # if a FASTA file with interest proteins/nucleiotides is given
             if config.get("input_file_db_const"):
                 # Will not build HMMs if input is a metagenome
+                
                 if config.get("input_type") == "metagenome":
+                    # instead, copy the file to the same output FASTA dir
                     shutil.copyfile(config.get("input_file_db_const"), PathManager.fasta_type_dir)
 
                 else:
@@ -778,6 +624,7 @@ def build_hmms_from_seqs(
             PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".txt"), 
         )
 
+        # Get consensus sequence for KMA
         if config.get("consensus"):
             run_hmmemit(
                 PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"), 
@@ -825,25 +672,35 @@ def annotation(config):
             print("Validated HMM already up, proceding to annotation...\n")
             time.sleep(1)
 
-    # if a metagenome is given, runs KMA
+    # if a metagenome is given, runs KMA 
     if config.get("input_type") == "metagenome":
         # paths are hardcoded for convinience
-        dir_generator_from_list([PathManager.tables_path / 'kma_hits', PathManager.databases_path / 'kma_db' / 'KEGG_cons'])
+        dir_generator_from_list(
+            [
+                PathManager.tables_path / 'kma_hits', 
+                PathManager.databases_path / 'kma_db' / 'KEGG_cons'
+            ]
+        )
+
         paired_workflow, second_input = False, None
-        if len(config.get("input")) == 2:
+        if config.get("input_number") == 2:
             paired_workflow = True
             second_input = config.get("input")[1]
+        
+        # if consensus is requested, go get the sequence file
         if config.get("consensus"):
+            print(config.get("input"))
             kma_out = run_KMA(
                 PathManager.consensus_path / Path("consensus").with_suffix(".fasta"), 
                 PathManager.databases_path / 'kma_db',
                 config.get("input"), 
-                PathManager.tables_path / 'kma_hits' / config.get("input").split(".")[0], 
+                PathManager.tables_path / 'kma_hits' / config.get("input")[0].split(".")[0], 
                 threads = config.get("threads"),
                 paired_end=paired_workflow,
                 second_input=second_input
             )
 
+        # otherwise, run for the sequence file in the requested hmm_db_name
         else:
             for file in os.listdir(PathManager.fasta_type_dir):
                 if os.path.isfile(os.path.join(PathManager.fasta_type_dir, file)):
@@ -959,6 +816,7 @@ def clean(args: dict):
 
 
 def main_pipeline(args):
+
     ### Resolve config ###
     config = resolve_config(args)
     # optionally save it for reproducibility
@@ -1044,7 +902,7 @@ def main():
     declare_fixed_paths(args)
 
     # setup logger
-    setup_logging(verbose=args.verbose, log_file=args.log_file)
+    setup_logging(verbose=args.verbose, log_file=args.log_file, db_name=args.hmm_db_name)
 
     # start pipeline
     main_pipeline(args)
