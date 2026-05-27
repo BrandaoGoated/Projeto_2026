@@ -21,7 +21,7 @@ def get_arguments(args: dict, sequences: list) -> dict:
         "hmm_database_name": args.hmm_db_name,
         "alignment_method": args.align_method.lower(),
         "msa_aligner": args.aligner,
-        "input_type": None if args.input == None else args.input_type,
+        "input_type": args.input_type,
         "metagenomic": True if args.input_type == "metagenome" else False,
         "hmm_validation": args.hmm_validation,
         "expansion": args.expansion,

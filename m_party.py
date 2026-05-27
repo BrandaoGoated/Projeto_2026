@@ -427,7 +427,10 @@ def database_construction(config):
                 # Will not build HMMs if input is a metagenome
                 if config.get("input_type") == "metagenome":
                     # instead, copy the file to the same output FASTA dir
-                    shutil.copyfile(config.get("input_file_db_const"), PathManager.fasta_type_dir)
+                    shutil.copy(
+                        config.get("input_file_db_const"),
+                        PathManager.fasta_type_dir
+                    )
 
                 else:
                     # Start HMM construction
@@ -887,7 +890,9 @@ def main_pipeline(args):
     minutes_time = (elapsed_time / 60)
     print(f'Execution time: {miliseconds_time:.4f} milliseconds and {minutes_time:.2f} minutes!')
     if args.workflow == "database_construction":
-        if args.consensus:
+        if args.input_type == "metagenome":
+            print("File copied to FASTA directory")
+        elif args.consensus:
             print("Consensus sequences generated!")
         else:
             print("HMMs generated!")
