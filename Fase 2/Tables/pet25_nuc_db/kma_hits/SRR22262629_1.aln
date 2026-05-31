@@ -1,0 +1,130 @@
+# BAO42836__Cut190__Saccharomonospora_viridis
+template: 	GTGCGAATTCGCAGGCAGGCGGGCACCGGTGCCCGCGCCTCGATGGCGCGAGCGATCGGC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GTGATGACCACCGCTTTGGCCGTGCTCGTCGGCGCGGTGGGTGGTGTTGCGGGAGCTGAG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GTCTCCACAGCCCAGGACAACCCTTACGAACGTGGTCCCGACCCGACGGAGGACAGCATC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GAGGCCATCCGCGGCCCGTTCTCGGTGGCCACCGAGCGCGTGTCTTCCTTCGCCTCCGGC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	TTCGGTGGCGGCACGATCTACTACCCCAGGGAGACCGACGAGGGCACCTTCGGGGCCGTC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GCCGTCGCCCCGGGCTTCACCGCCAGCCAGGGCAGCATGTCGTGGTACGGCGAGCGCGTC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GCCTCGCAGGGCTTCATCGTGTTCACCATCGACACCAACACGCGCCTCGACCAGCCCGGA
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CAGCGTGGCCGTCAGTTGCTGGCCGCCCTGGACTACCTGGTGGAGCGCAGTGACCGGAAG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GTCCGCGAGCGGCTCGACCCGAACCGGCTCGCGGTCATGGGCCACTCGATGGGCGGTGGC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GGTTCGCTGGAGGCGACCGTGATGCGGCCCTCGCTGAAGGCGTCCATCCCCCTGACGCCG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	TGGAACCTGGACAAGACCTGGGGCCAGGTCCAGGTGCCGACGTTCATCATCGGCGCCGAA
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CTCGACACCATCGCGTCGGTGCGGACCCACGCGAAGCCGTTCTACGAGAGCCTGCCGAGC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	TCGTTGCCGAAGGCGTACATGGAGCTGGACGGCGCCACCCACTTCGCTCCGAACATCCCC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	AACACCACGATCGCGAAGTACGTGATCTCGTGGCTCAAGCGGTTCGTGGACGAGGACACC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CGCTACAGCCAGTTCCTCTGCCCCAACCCGACCGACCGGGCGATCGAGGAGTACCGCTCG
+          	_____________________________________________|||||||||||||||
+query:    	---------------------------------------------gaggagtaccgctcg
+
+template: 	ACCTGCCCGTACTGA
+          	||||||____||__|
+query:    	acctgc---gacc-a
+
+# BAK48590__Est119__Thermobifida_alba
+template: 	ATGTCGGTCACCACCCCCCGCCGGGAGACCTCGCTGCTCTCCCGCGCCCTGCGGGCCACC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GCCGCGGCCGCCACGGCGGTCGTCGCCACCGTGGCGCTGGCCGCTCCGGCCCAGGCCGCC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	AACCCCTACGAACGCGGCCCCAACCCGACCGAGTCCATGCTGGAGGCGCGCAGCGGCCCC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	TTCTCCGTCAGCGAGGAGCGCGCCTCCCGCTTCGGCGCGGACGGCTTCGGCGGCGGCACC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	ATCTACTACCCGCGGGAGAACAACACCTACGGCGCGATCGCCATCTCCCCCGGCTACACC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GGCACCCAGTCCTCCATCGCCTGGCTGGGCGAGCGCATCGCCTCCCACGGCTTCGTCGTG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	ATCGCCATCGACACCAACACCACGCTGGACCAGCCCGACAGCCGCGCCCGCCAGCTCAAC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GCCGCCCTGGACTACATGCTCACCGACGCCTCCTCGGCGGTGCGCAACCGCATCGACGCC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	AGCCGCCTGGCGGTCATGGGCCACTCCATGGGCGGCGGCGGCACCCTGCGCCTGGCCTCC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CAGCGCCCCGACCTGAAGGCCGCCATCCCGCTGACCCCCTGGCACCTCAACAAGTCCTGG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CGCGACATCACCGTGCCGACCCTGATCATCGGCGCCGAGTACGACACCATCGCCTCGGTC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	ACCCTGCACTCCAAGCCGTTCTACAACAGCATCCCCAGCCCCACCGACAAGGCCTACCTG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GAGCTCGACGGAGCGAGCCACTTCGCGCCCAACATCACCAACAAGACCATCGGCATGTAC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	AGCGTGGCCTGGCTCAAGCGCTTCGTGGACGAGGACACCCGCTACACCCAGTTCCTCTGC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CCCGGACCGCGCACCGGCCTGCTCAGCGACGTCGAGGAGTACCGCTC-CAC--CTGCCCG
+          	_____________________________||||||||||||||||||_|_|__|__||_|
+query:    	-----------------------------CGTCGAGGAGTACCGCTCGCTCAACAACCGG
+
+template: 	TTCTAG
+          	|||||_
+query:    	TTCTAT
+

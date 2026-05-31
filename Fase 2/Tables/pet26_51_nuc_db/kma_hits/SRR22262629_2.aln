@@ -1,0 +1,93 @@
+# GFJ81874
+template: 	TTATGTGCGGGGCACGAGGTTGAATCGCTGGTTGGCTCCTCCGTGGCAGTCGTACAGCTG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GATTTGTGCGCCGTTGGCCGTGCTCCAGACGTCCAGGCATCGTCCGGACTGCACGCCGCT
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GATGGTGCCGTTGGAGTTGACGTTCCACTGCTGGTTGGTTTGGCTGTGGCAGCTGTAGAT
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CTGGACCGCCGCACCGTTGCCGGAACCGGCCGCGTCTAGGCACATGTTGCCGTACACCTG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GAGTTGCTTGCCCGAGGTGTATGTCCAGGATTGGTTGGCTTGCCTGTTGCAGTCGTAGAG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CTGTACCCGGGTGCCGTTGTTACGAGAGGCGTTTGGCACGTCGATACACCGGCCCGACTG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GACACCGACGATCTCGCTCGCGGAACTGGGCGGAGTGGTGGGGGTGACCGGAGGCGTGGT
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CGGCGGGGTCGTCCCGGTGTTGGAGGGGGTCGGCGCCGGTGGCAGCAGCGGGCAGGTGCT
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GCGGTAGGTGACCACGCCGCTGGAGTCCAGCAGCGGGCAGAGGAACTGGCTGTACCGGGT
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GTCGTTGTCGATGAACATTTTGACGAACGGCAGCATGGTGCGGATCATTACCGGGTTTGA
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CCGTCCGACCATGAACCCGTGATCCGCGCCGGCGACCTCCAGGTAGACGCTTTCCGTCGT
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GGCCGGGAGGCTGTTGTACAGGCCGGTAGCGTAGGACGGGGTGACTACCGTGTCCGCCTG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CCCGGAGAAGACCATCGTGGGTACTCGGTCGTTGGCCAGGTTCGACGATGGCGAGTACGG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CGCGATGCCGACCACTGCCTTCAACGACGAGCGCCGGATGGCTGCGCTCAGCGCCCCACC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GCCGCCCATGGAGTGGCCAGAGACGGCGAGTCGGTTGGGGTCGACCCGGTCGCGTACCGG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GCTCTGCTGCGTCAGGTAGTCCAGCGCCGCGAGCAGCTGGGTGCCTCGGGCCGTATCGAA
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	GTCGTTACGGCTGTTGGTCTCGATGCCGATCACGACGAAGCCGTGCGAGGCCAGCCACGG
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CCCCATCCAGGCCAGTTCGGCGGAGAACAACGCGGTGTAGCCCGGCGAGATCGCGATGGC
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	TCCGAAGGTGCCCTGGCTGGTGTCGGTCGGGTAGTAGATCCTGCCGCCGTTGAAGCCGTA
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CCCGGTCGGGACGCTCACCGACGTGTTGGCGAAAGGCCCGTTCACGGCCGCGACACTGGT
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CCGGGTGGGGTCCGGACCCCGCTGGTACGGGTTGTCGGCGGCCGACGCCGACCCGGTCGT
+          	____________________________________________________________
+query:    	------------------------------------------------------------
+
+template: 	CACCGCCATGGTGAACAGGCCGAGGGTGACCGCGACCCCGGCCACGGCGAGCTTGAGCAG
+          	___________________________________________________________|
+query:    	-----------------------------------------------------------G
+
+template: 	CCGTCCTCGGAGGCCGAGGAACAT
+          	|||||||||||||||||______|
+query:    	CCGTCCTCGGAGGCCGA------T
+

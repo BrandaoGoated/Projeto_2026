@@ -1,0 +1,8 @@
+## method	KMA
+## version	1.6.11
+## database	kma_db
+## fragmentCount	88071972
+## bpTotal	13291491939
+## date	2026-05-29
+## command	kma -i "resources/Data/FASTQ/PMC10353409/SRA/SRR22262629_2.fastq" -o "/app/resources/Data/Tables/pet25_nuc_db/kma_hits/SRR22262629_2" -t_db /app/resources/Data/FASTA/DataBases/pet25_nuc_db/kma_db -t 20 -1t1 -mem_mode -ef 
+# refSequence	readCount	fragmentCount	mapScoreSum	refCoveredPositions	refConsensusSum	bpTotal	depthVariance	nucHighDepthVariance	depthMax	snpSum	insertSum	deletionSum	readCountAln	fragmentCountAln

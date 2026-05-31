@@ -1,0 +1,10 @@
+## method	KMA
+## version	1.6.11
+## database	kma_db
+## fragmentCount	88071978
+## bpTotal	26583541708
+## date	2026-05-27
+## command	kma -ipe "resources/Data/FASTQ/PMC10353409/SRA/SRR22262629_1.fastq" "resources/Data/FASTQ/PMC10353409/SRA/SRR22262629_2.fastq" -o "/app/resources/Data/Tables/pet25_nuc_db/kma_hits/SRR22262629_1" -t_db /app/resources/Data/FASTA/DataBases/pet25_nuc_db/kma_db -t 20 -1t1 -mem_mode -ef 
+# refSequence	readCount	fragmentCount	mapScoreSum	refCoveredPositions	refConsensusSum	bpTotal	depthVariance	nucHighDepthVariance	depthMax	snpSum	insertSum	deletionSum	readCountAln	fragmentCountAln
+BAO42836__Cut190__Saccharomonospora_viridis	16596	16461	60	26	24	78	0.248471	29	3	6	0	12	3	3
+BAK48590__Est119__Thermobifida_alba	9953	9866	100	37	29	185	0.982390	36	5	20	15	0	5	5
