@@ -1,0 +1,39 @@
+>Cluster 0
+0	1470aa, >ADH43200__BsEstB__Bacillus_subtilis... *
+>Cluster 1
+0	960aa, >CAA37220__Mors1__Moraxella_sp._TA144... *
+>Cluster 2
+0	906aa, >CAH17553__BTA-1__Thermobifida_fusca... at 94.81%
+1	789aa, >ADV92528__BTA-1__Thermobifida_fusca... at 97.21%
+2	906aa, >AAZ54921__Tfu_0883__Thermobifida_fusca... at 94.70%
+3	960aa, >CBY05529__TfCut_1__Thermobifida_fusca... *
+4	960aa, >AET05798__Cut1__Thermobifida_fusca... at 96.98%
+5	906aa, >AET05799__BTA-1__Thermobifida_fusca... at 94.70%
+6	789aa, >ADV92526__Thc_Cut1__Thermobifida_cellulosilytica... at 93.79%
+7	789aa, >ADV92527__Thc_Cut2__Thermobifida_cellulosilytica... at 97.21%
+8	789aa, >AFA45122__Thh_Est__Thermobifida_halotolerans... at 81.50%
+9	891aa, >BAI99230__Est1__Thermobifida_alba... at 86.20%
+10	903aa, >BAK48590__Est119__Thermobifida_alba... at 84.83%
+>Cluster 3
+0	933aa, >CCK74972__PET5__Oleispira_antarctica... *
+>Cluster 4
+0	927aa, >ACC95208__PET2__Metagenome-derived_with__no_obvious_affiliation... *
+>Cluster 5
+0	924aa, >ANP21910__PpelaLip__Halopseudomonas_pelagia... *
+>Cluster 6
+0	915aa, >OWL88088__PE-H__Halopseudomonas_aestusnigri... *
+>Cluster 7
+0	915aa, >BAO42836__Cut190__Saccharomonospora_viridis... *
+>Cluster 8
+0	909aa, >ADK73612__PpCutA__Ectopseudomonas_oleovorans... *
+>Cluster 9
+0	897aa, >ASA57064__PET6__Vibrio_gazogenes... *
+>Cluster 10
+0	897aa, >AKJ29164__PET12__Caldimonas_brevitalea... *
+>Cluster 11
+0	879aa, >ARN19491__RgPETase__Piscinibacter_gummiphilus... *
+>Cluster 12
+0	870aa, >ACY96861__Tcur_1278__Thermomonospora_curvata... at 85.06%
+1	879aa, >ACY95991__Tcur0390__Thermomonospora_curvata... *
+>Cluster 13
+0	873aa, >GAP38373__ISPETase__Piscinibacter_sakaiensis... *
