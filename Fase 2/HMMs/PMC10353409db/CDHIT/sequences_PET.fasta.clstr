@@ -1,0 +1,18 @@
+>Cluster 0
+0	319aa, >sp|P19833|LIP1_MORS1... *
+>Cluster 1
+0	262aa, >tr|E9LVH7|E9LVH7_THEAE... at 91.22%
+1	262aa, >sp|E9LVH9|PETH2_THECS... at 99.62%
+2	300aa, >sp|F7IX06|PETH2_THEAE... at 84.67%
+3	262aa, >tr|H6WX58|H6WX58_9ACTN... at 76.34%
+4	301aa, >sp|Q47RJ6|PETH2_THEFY... at 93.02%
+5	319aa, >sp|Q47RJ7|PETH1_THEFY... *
+6	301aa, >sp|Q6A0I4|PETH2_THEFU... at 93.02%
+>Cluster 2
+0	304aa, >tr|W0TJ64|W0TJ64_9PSEU... *
+>Cluster 3
+0	293aa, >sp|G9BY57|PETH_UNKP... *
+>Cluster 4
+0	290aa, >sp|A0A0K8P6T7|PETH_IDESA... *
+>Cluster 5
+0	289aa, >tr|D1A9G5|D1A9G5_THECD... *
