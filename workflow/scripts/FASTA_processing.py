@@ -81,7 +81,7 @@ def parse_fasta(
                     for line in handlefile:
                         if line.startswith(">"):
                             uniq_ids.append(clean_sequence_ids(line, remove_excess_id, ip, kegg, kma_res))
-                    if config.get("verbpse"):
+                    if config.get("verbose"):
                         print(f'Input file {filename} detected and sequence IDs retrieved\n')
                         time.sleep(1)
                 except Exception as exc:

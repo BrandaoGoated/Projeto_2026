@@ -34,11 +34,13 @@ def run_KMA(input_db: Path, output_db: Path, meta_input: Path, meta_out: str, th
     # Run KMA
     if not paired_end:
         # run_command(f'kma`-i`{meta_input}`-o`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
-        command = ["kma", "-i", str(meta_input), "-o", str(meta_out), "-t_db", str(output_db), "-t", str(threads), "-1t1", "-mem_mode", "-ef"]
+        single = meta_input[0] if isinstance(meta_input, list) else meta_input
+        command = ["kma", "-i", str(single), "-o", str(meta_out), "-t_db", str(output_db), "-t", str(threads), "-1t1", "-mem_mode", "-ef"]
 
     else:
         # run_command(f'kma`-i`{meta_input}`{second_input}`{meta_out}`-t_db`{output_db}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
-        command = ["kma", "-i", str(meta_input), second_input, "-o", meta_out, "-t_db", output_db, "-t", threads, "-1t1", "-mem_mode", "-ef"]
+        fwd = meta_input[0] if isinstance(meta_input, list) else meta_input
+        command = ["kma", "-ipe", str(fwd), str(second_input), "-o", str(meta_out), "-t_db", str(output_db), "-t", str(threads), "-1t1", "-mem_mode", "-ef"]
     
     run_command(command)
         

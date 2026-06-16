@@ -207,12 +207,18 @@ def get_unique_hits(hit_ids_list: list) -> list:
 
 
 def get_aligned_seqs(
-        config, 
-        hit_ids_list: list, 
-        path: str, 
-        inputed_seqs: str, 
+        config,
+        hit_ids_list: list,
+        path: str,
+        inputed_seqs: str,
         kma_alignfile: str = None
     ):
+    input_ids = parse_fasta(
+        kma_alignfile,
+        remove_excess_id=False,
+        kma_res=True,
+        config=config,
+    )
     """Writes an ouput Fasta file with the sequences from the input files that had a hit in hmmsearch 
     annotation against the hmm models.
 
@@ -718,7 +724,7 @@ def annotation(config):
                         PathManager.fasta_type_dir / file, 
                         PathManager.databases_path / 'kma_db',
                         config.get("input"), 
-                        PathManager.tables_path / 'kma_hits' / Path(config.get("input").split("/")[-1].split(".")[0]), 
+                        PathManager.tables_path / 'kma_hits' / Path(config.get("input")[0].split("/")[-1].split(".")[0]),
                         threads = config.get("threads"),
                         paired_end=paired_workflow,
                         second_input=second_input
@@ -829,6 +835,13 @@ def main_pipeline(args):
 
     ### Resolve config ###
     config = resolve_config(args)
+    #garantir que campos do args sao copiados ao config
+    for attr in ['output', 'output_type', 'report_text', 'hmm_validation',
+                 'consensus', 'concat_models', 'expansion']:
+        if config.get(attr) is None and hasattr(args, attr):
+            val = getattr(args, attr)
+            if val is not None:
+                config[attr] = val
     # optionally save it for reproducibility
     if args.display_config or not args.config_file:
         write_yaml_json("yaml", args)

@@ -7,6 +7,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 def run_command(bash_command: list[str], output='', mode='w', verbose=True):
+    bash_command = [str(x) for x in bash_command]
     display = ' '.join(bash_command) + (f' > {output}' if output else '')
     logger.debug(display)
 
