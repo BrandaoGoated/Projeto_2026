@@ -14,9 +14,11 @@ Foram detetados dois candidatos: um semelhante à PETase **PD3** (*Brucella anth
 ## Estrutura
 
 ```
-Fase 1/    — Excel com todos os dados utilizados para o primeiro artigo
-Fase2e3_ResultadosEFicheiros/   — todos os ficheiros relacionados ao M-Party
-Fase2e3_ResultadosEFicheiros/Resources     — Principais resultados obtidos (contudo estes não contém os FASTQ visto que são 150GB de ficheiros)
+Fase 1 - Excel com todos os dados utilizados para o primeiro artigo
+Fase2e3_ResultadosEFicheiros - todos os ficheiros relacionados ao M-Party
+Fase2e3_ResultadosEFicheiros/Resources - Principais resultados obtidos (contudo estes não contém os FASTQ visto que são 150GB de ficheiros)
+m_Party_apresentacao.pptx - Apresentação da fase 2
+Projeto_Fase_3_M_Party.pdf - Artigo da fase 3
 ```
 
 ## Ferramentas
