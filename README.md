@@ -16,12 +16,11 @@ Foram detetados dois candidatos: um semelhante à PETase **PD3** (*Brucella anth
 ## Estrutura
 
 ```
-slides/    — apresentação
-scripts/   — código de obtenção das sequências
-dados/     — ficheiros de referência (CSV/FASTA)
-artigo/    — artigo final
+Fase 1/    — Excel com todos os dados utilizados para o primeiro artigo
+Fase2e3_ResultadosEFicheiros/   — todos os ficheiros relacionados ao M-Party
+Fase2e3_ResultadosEFicheiros/Resources     — Principais resultados obtidos (contudo estes não contém os FASTQ visto que são 150GB de ficheiros)
 ```
 
 ## Ferramentas
 
-M-PARTY · KMA · CD-HIT · Biopython · BLAST · AlphaFold
+M-PARTY · BLAST · AlphaFold
