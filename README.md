@@ -1,6 +1,4 @@
-# Projeto 2026 — Deteção de enzimas degradadoras de PET em metagenomas
-
-Projeto da unidade curricular **Projeto em Bioinformática** (Mestrado em Bioinformática, Universidade do Minho).
+# Projeto 2026 — Improving Bioinformatic Tools for the Discovery of Plastic-Degrading Enzymes from Environmental Metagenomes
 
 Aplicação e validação da ferramenta [M-PARTY](https://github.com/ozefreitas/M-PARTY) para detetar enzimas degradadoras de **PET** em metagenomas ambientais, usando enzimas de referência da base de dados **PAZy**.
 
@@ -9,7 +7,7 @@ Aplicação e validação da ferramenta [M-PARTY](https://github.com/ozefreitas/
 
 ## O que foi feito
 
-A partir de enzimas PET-ativas do PAZy, obtiveram-se as sequências codificantes, que foram usadas como referência para procurar enzimas semelhantes em dois metagenomas (BioProject PRJNA849162) por mapeamento de reads com KMA. Os candidatos foram validados por BLAST e AlphaFold.
+A partir de enzimas PET obtidas do PAZy, obtiveram-se as sequências nucleotídicas, que foram usadas como referência para procurar enzimas semelhantes em dois metagenomas (BioProject PRJNA849162) por mapeamento de reads com KMA. Os candidatos foram validados por BLAST.
 
 Foram detetados dois candidatos: um semelhante à PETase **PD3** (*Brucella anthropi*) e outro à esterase **PpEst** (*Ectopseudomonas oleovorans*), ambos confirmados por BLAST.
 
