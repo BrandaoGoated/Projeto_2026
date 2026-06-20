@@ -21,4 +21,4 @@ Fase2e3_ResultadosEFicheiros/Resources     — Principais resultados obtidos (co
 
 ## Ferramentas
 
-M-PARTY · BLAST · AlphaFold
+M-PARTY · Docker · BLAST · AlphaFold
